@@ -45,12 +45,6 @@ class AdminTenantList(BaseModel):
     offset: int
 
 
-_TENANT_COLUMNS = (
-    "t.id, t.name, t.type, t.status, t.is_internal, t.created_at,"
-    " (select count(*) from public.memberships m where m.tenant_id = t.id)::int as member_count"
-)
-
-
 @router.get("/tenants")
 async def list_tenants(
     admin: PlatformAdmin,
@@ -60,7 +54,9 @@ async def list_tenants(
     async with system_db() as conn:
         rows = await (
             await conn.execute(
-                f"select {_TENANT_COLUMNS} from public.tenants t"  # noqa: S608 - constant columns
+                "select t.id, t.name, t.type, t.status, t.is_internal, t.created_at,"
+                " (select count(*) from public.memberships m where m.tenant_id = t.id)::int"
+                " as member_count from public.tenants t"
                 " order by t.created_at desc, t.id limit %s offset %s",
                 (limit, offset),
             )
@@ -81,7 +77,10 @@ async def get_tenant(tenant_id: UUID, admin: PlatformAdmin) -> AdminTenantDetail
     async with system_db() as conn:
         row = await (
             await conn.execute(
-                f"select {_TENANT_COLUMNS} from public.tenants t where t.id = %s",  # noqa: S608
+                "select t.id, t.name, t.type, t.status, t.is_internal, t.created_at,"
+                " (select count(*) from public.memberships m where m.tenant_id = t.id)::int"
+                " as member_count from public.tenants t"
+                " where t.id = %s",
                 (tenant_id,),
             )
         ).fetchone()

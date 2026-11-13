@@ -116,8 +116,8 @@ Plugins: `supabase`, `security-guidance`, `code-review`, `playwright`, `context7
 
 ## Done when
 
-- [ ] Two test agencies exist and every terminal test gives the expected result
-- [ ] The isolation suite covers every table with a `tenant_id` and runs in CI
-- [ ] Platform admin reads are written to the audit log
-- [ ] Only one module can open a service-role connection
-- [ ] Sign-up, invite, reset and company switch work in the browser
+- [x] Two test agencies exist and every terminal test gives the expected result (2026-11-13, `bash scripts/rls_terminal_tests.sh` after a fresh `make db-reset`)
+- [ ] The isolation suite covers every table with a `tenant_id` and runs in CI. Coverage: done (tables discovered automatically, a missing factory fails). CI: the `database` job exists in `.github/workflows/ci.yml` but has not run yet, because no GitHub remote exists.
+- [x] Platform admin reads are written to the audit log (`admin.tenants_listed`, `admin.tenant_viewed`)
+- [x] Only one module can open a service-role connection (`packages/core/core/db.py`; ruff TID251 plus `test_import_rules.py`)
+- [ ] Sign-up, invite, reset and company switch work in the browser. Checked over HTTP (confirm link, cookies, team, invite and accept, cross-company not found); manual tests 1-8 in a real browser are still open.

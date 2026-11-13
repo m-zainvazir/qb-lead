@@ -93,8 +93,8 @@ Plugins: `security-guidance`, `context7`, `commit-commands`, `hookify`, `skill-c
 
 ## Done when
 
-- [ ] `make dev` starts web, API, worker, scheduler, Redis and local Supabase
-- [ ] CI runs lint, types, tests, gitleaks, semgrep and audits on every push
-- [ ] Staging is live over HTTPS with only web ports open
-- [ ] Hooks block edits to `.env` and destructive database commands
-- [ ] `CLAUDE.md`, the runbook and the first decision record are committed
+- [ ] `make dev` starts web, API, worker, scheduler, Redis and local Supabase. Each part has been started and checked (Supabase, `make up`, `npm run dev`); a one-command run from a fresh clone is still open.
+- [ ] CI runs lint, types, tests, gitleaks, semgrep and audits on every push. The workflow is written and every step has been run locally; deferred until a GitHub remote exists.
+- [ ] Staging is live over HTTPS with only web ports open. Deferred by decision (local only for now).
+- [x] Hooks block edits to `.env` and destructive database commands (`.claude/settings.json`, `scripts/hooks/`, tests in `scripts/hooks/test_hooks.py`)
+- [x] `CLAUDE.md`, the runbook and the first decision record are committed (`docs/decisions/0001-db-access.md`)
