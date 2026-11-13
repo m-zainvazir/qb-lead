@@ -47,7 +47,7 @@ class SmtpMailer:
         try:
             await asyncio.to_thread(self._send_sync, email)
             return True
-        except (OSError, smtplib.SMTPException):
+        except (OSError, ValueError, smtplib.SMTPException):
             log.warning("email_send_failed", extra={"subject": email.subject}, exc_info=True)
             return False
 

@@ -13,7 +13,6 @@ from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from api.auth import CurrentTenant
 from api.models import ChangeRole, InvitationOut, Member, Team
-from core.audit import audit_as_user
 from core.db import user_db
 from core.features import can
 
@@ -58,14 +57,15 @@ async def change_role(user_id: UUID, body: ChangeRole, ctx: CurrentTenant) -> Me
     if user_id == ctx.auth.user_id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "You cannot change your own role")
     async with user_db(ctx.claims) as conn:
-        before = await (
+        exists = await (
             await conn.execute(
-                "select role from public.memberships where tenant_id = %s and user_id = %s",
+                "select 1 from public.memberships where tenant_id = %s and user_id = %s",
                 (ctx.tenant_id, user_id),
             )
         ).fetchone()
-        if before is None:
+        if exists is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Member not found")
+        # The audit entry is written by a database trigger (same for every path).
         updated = await (
             await conn.execute(
                 "update public.memberships set role = %s"
@@ -75,14 +75,6 @@ async def change_role(user_id: UUID, body: ChangeRole, ctx: CurrentTenant) -> Me
         ).fetchone()
         if updated is None:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Not allowed")
-        await audit_as_user(
-            conn,
-            "membership.role_changed",
-            ctx.tenant_id,
-            "user",
-            user_id,
-            {"from": before["role"], "to": body.role},
-        )
         member = await (
             await conn.execute(
                 "select * from private.team_members(%s) where user_id = %s",
@@ -98,11 +90,8 @@ async def remove_member(user_id: UUID, ctx: CurrentTenant) -> Response:
     leaving = user_id == ctx.auth.user_id
     if not leaving:
         ctx.require_role("owner")
-    action = "membership.left" if leaving else "membership.removed"
     async with user_db(ctx.claims) as conn:
-        # Audit first: once someone has left, write_audit no longer accepts them as a
-        # member. If nothing is deleted, the 404 rolls the whole transaction back.
-        await audit_as_user(conn, action, ctx.tenant_id, "user", user_id)
+        # A database trigger records membership.removed / membership.left.
         removed = await (
             await conn.execute(
                 "delete from public.memberships where tenant_id = %s and user_id = %s"

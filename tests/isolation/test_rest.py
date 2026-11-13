@@ -4,8 +4,10 @@ through our own API (terminal tests 5-7)."""
 from __future__ import annotations
 
 import httpx
+import psycopg
 import pytest
 
+from core.settings import get_settings
 from tests.isolation.conftest import World
 
 
@@ -82,6 +84,58 @@ def test_wrong_company_header_is_refused(api: httpx.Client, world: World) -> Non
 
 def test_normal_user_on_admin_route(api: httpx.Client, world: World) -> None:  # test 7
     assert api.get("/admin/tenants", headers=_bearer(world.env["JWT_A"])).status_code == 403
+
+
+def test_rest_refuses_a_revoked_session(rest: httpx.Client, world: World) -> None:
+    """Sign-out everywhere must also stop direct REST calls, not only our API."""
+    auth = f"{world.env['SUPA']}/auth/v1"
+
+    def session() -> str:
+        res = httpx.post(
+            f"{auth}/token",
+            params={"grant_type": "password"},
+            headers={"apikey": world.env["ANON"]},
+            json={"email": "owner-b@example.com", "password": world.env["TEST_PASSWORD"]},
+            timeout=15,
+        )
+        res.raise_for_status()
+        return str(res.json()["access_token"])
+
+    first, second = session(), session()
+    assert rest.get("/tenants", params={"select": "id"}, headers=_bearer(second)).status_code == 200
+    httpx.post(
+        f"{auth}/logout",
+        params={"scope": "global"},
+        headers={"apikey": world.env["ANON"], **_bearer(first)},
+        timeout=15,
+    ).raise_for_status()
+    res = rest.get("/tenants", params={"select": "id"}, headers=_bearer(second))
+    assert res.status_code == 401, res.text
+
+
+def test_rest_role_change_is_audited(rest: httpx.Client, world: World) -> None:
+    res = rest.patch(
+        "/memberships",
+        params={"tenant_id": f"eq.{world.tenant_a}", "user_id": f"eq.{world.member_a}"},
+        headers={**_bearer(world.env["JWT_A"]), "Prefer": "return=representation"},
+        json={"role": "admin"},
+    )
+    assert res.status_code == 200 and len(res.json()) == 1
+    url = get_settings().database_url_admin
+    assert url is not None
+    with psycopg.connect(url.get_secret_value()) as conn:
+        row = conn.execute(
+            "select actor_user_id::text from public.audit_log"
+            " where action = 'membership.role_changed' and target_id = %s"
+            "   and occurred_at > now() - interval '1 minute' order by id desc limit 1",
+            (world.member_a,),
+        ).fetchone()
+        conn.execute(  # put member A back for the other tests
+            "update public.memberships set role = 'member' where tenant_id = %s and user_id = %s",
+            (world.tenant_a, world.member_a),
+        )
+        conn.commit()
+    assert row is not None and row[0] == world.owner_a
 
 
 def test_platform_admin_with_mfa_can_read(api: httpx.Client, world: World) -> None:

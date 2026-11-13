@@ -23,6 +23,7 @@ _MAP: dict[str, tuple[int, str]] = {
     "LG403": (403, "Not allowed"),
     "LG404": (404, "Not found or no longer valid"),
     "LG409": (409, "That conflicts with the current state"),
+    "LG429": (429, "Limit reached; try again later"),
     "LG400": (400, "Invalid request"),
     "23505": (409, "That already exists"),
     "23503": (409, "That refers to something that does not exist"),
@@ -43,8 +44,12 @@ def _body(status: int, message: str) -> JSONResponse:
 async def _db_error(_request: Request, exc: Exception) -> JSONResponse:
     sqlstate = getattr(exc, "sqlstate", None) or ""
     status, message = _MAP.get(sqlstate, (500, "Something went wrong"))
-    if sqlstate == "LG409" and isinstance(exc, psycopg.Error) and exc.diag.message_primary:
-        # Our own LG409 messages are written for users ("a company must keep at least one owner").
+    if (
+        sqlstate in ("LG409", "LG429")
+        and isinstance(exc, psycopg.Error)
+        and exc.diag.message_primary
+    ):
+        # Our own LG4xx messages are written for users ("a company must keep at least one owner").
         message = exc.diag.message_primary
     level = logging.ERROR if status >= 500 else logging.INFO
     log.log(

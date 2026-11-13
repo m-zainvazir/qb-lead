@@ -45,6 +45,8 @@ make dev              # Supabase, then API/worker/scheduler/Redis containers, th
 - First platform admin: `supabase/snippets/create_platform_admin.sql` (SQL only, never a screen). The admin then enrols an authenticator at `/admin/mfa`; admin routes need aal2.
 - Someone locked out of a company: check `memberships` and the company's `status` (members of suspended companies see nothing).
 - "A company must keep at least one owner": promote another member to owner first.
+- Audit entries for memberships, invitations and companies are written by database triggers, so changes through the Supabase REST API are logged too. Revoking an invitation goes through `private.revoke_invitation()`.
+- The Supabase REST API refuses tokens of ended sessions via `pgrst.db_pre_request = private.check_request` (set on the `authenticator` role by migration). On hosted Supabase, check it is set after the first deploy: `select rolconfig from pg_roles where rolname = 'authenticator';`
 - Who did what: `select * from audit_log where tenant_id = '<id>' order by occurred_at desc limit 50;` (append-only; entries cannot be edited or deleted).
 
 ## Debugging

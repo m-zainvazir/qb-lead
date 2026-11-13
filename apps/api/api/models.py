@@ -36,7 +36,7 @@ class Me(BaseModel):
 
 # --- tenants -------------------------------------------------------------------
 class CreateCompany(Input):
-    name: str = Field(min_length=1, max_length=120)
+    name: str = Field(min_length=1, max_length=120, pattern=r"^[^\x00-\x1f\x7f]+$")
     type: Literal["freelancer", "agency"]
 
 

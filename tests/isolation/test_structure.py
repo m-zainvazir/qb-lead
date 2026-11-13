@@ -105,5 +105,18 @@ def test_every_tenant_table_has_a_factory(table: str) -> None:
     TENANT_COLUMN.get(table, "tenant_id")
 
 
+@pytest.mark.parametrize("table", TENANT_TABLES)
+def test_users_cannot_move_rows_between_tenants(conn: Conn, table: str) -> None:
+    columns = ["id", "created_at", TENANT_COLUMN.get(table, "tenant_id")]
+    writable = conn.execute(
+        "select column_name from information_schema.columns where table_schema = 'public'"
+        " and table_name = %s and column_name = any(%s)"
+        " and has_column_privilege('authenticated', format('public.%%I', %s::text), column_name,"
+        "  'UPDATE')",
+        (table, columns, table),
+    ).fetchall()
+    assert writable == [], f"users can UPDATE {[r['column_name'] for r in writable]} on {table}"
+
+
 def test_world_is_two_separate_agencies(world: World) -> None:
     assert world.tenant_a != world.tenant_b

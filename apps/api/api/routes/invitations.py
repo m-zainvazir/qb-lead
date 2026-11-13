@@ -21,15 +21,12 @@ from api.models import (
     InvitationPreview,
     InvitationToken,
 )
-from core.audit import audit_as_user
 from core.db import user_db
 from core.features import can
 from core.mailer import Email, get_mailer
 from core.settings import get_settings
 
 router = APIRouter(prefix="/invitations", tags=["invitations"])
-
-MAX_INVITES_PER_DAY = 50  # per company; limits spam through invitation emails
 
 
 class CreatedInvitation(BaseModel):
@@ -52,30 +49,9 @@ async def create_invitation(body: CreateInvitation, ctx: CurrentTenant) -> Creat
 
     token = secrets.token_urlsafe(32)
     email = str(body.email).lower()
+    # The database enforces the daily cap, "already a member" and one open invitation per
+    # email (also for direct REST calls), and a trigger writes the audit entry.
     async with user_db(ctx.claims) as conn:
-        recent = await (
-            await conn.execute(
-                "select count(*) as n from public.invitations"
-                " where tenant_id = %s and created_at > now() - interval '1 day'",
-                (ctx.tenant_id,),
-            )
-        ).fetchone()
-        if recent and recent["n"] >= MAX_INVITES_PER_DAY:
-            raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Daily invitation limit reached")
-        already = await (
-            await conn.execute(
-                "select 1 from private.team_members(%s) where lower(email) = %s",
-                (ctx.tenant_id, email),
-            )
-        ).fetchone()
-        if already:
-            raise HTTPException(status.HTTP_409_CONFLICT, "That person is already a member")
-        # A new invitation replaces any open one for the same email.
-        await conn.execute(
-            "update public.invitations set revoked_at = now()"
-            " where tenant_id = %s and email = %s and accepted_at is null and revoked_at is null",
-            (ctx.tenant_id, email),
-        )
         row = await (
             await conn.execute(
                 "insert into public.invitations (tenant_id, email, role, token_hash)"
@@ -88,9 +64,6 @@ async def create_invitation(body: CreateInvitation, ctx: CurrentTenant) -> Creat
         company = await (
             await conn.execute("select name from public.tenants where id = %s", (ctx.tenant_id,))
         ).fetchone()
-        await audit_as_user(
-            conn, "invitation.created", ctx.tenant_id, "invitation", row["id"], {"role": body.role}
-        )
 
     url = f"{get_settings().web_base_url.rstrip('/')}/invite/{token}"
     company_name = company["name"] if company else "a company"
@@ -117,15 +90,11 @@ async def revoke_invitation(invitation_id: UUID, ctx: CurrentTenant) -> Response
     async with user_db(ctx.claims) as conn:
         row = await (
             await conn.execute(
-                "update public.invitations set revoked_at = now()"
-                " where id = %s and tenant_id = %s and accepted_at is null and revoked_at is null"
-                " returning id",
-                (invitation_id, ctx.tenant_id),
+                "select private.revoke_invitation(%s) as tenant_id", (invitation_id,)
             )
         ).fetchone()
-        if row is None:
+        if row is None or row["tenant_id"] != ctx.tenant_id:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Invitation not found")
-        await audit_as_user(conn, "invitation.revoked", ctx.tenant_id, "invitation", invitation_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

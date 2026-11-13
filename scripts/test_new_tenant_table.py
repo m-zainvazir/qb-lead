@@ -16,7 +16,9 @@ def test_template_has_four_policies_on_is_member() -> None:
     sql = render("leads")
     for cmd in ("select", "insert", "update", "delete"):
         assert f"create policy leads_{cmd} on public.leads for {cmd}" in sql
-    assert sql.count("private.is_member(tenant_id)") == 5  # update has using + with check
+    assert sql.count("private.is_member(tenant_id)") == 4  # update has using + with check
+    assert "has_role(tenant_id, array['owner', 'admin'])" in sql  # delete needs a role
+    assert "update (updated_at" in sql  # no table-wide UPDATE grant
 
 
 @pytest.mark.parametrize("bad", ["Leads", "x", "leads; drop", "1abc"])

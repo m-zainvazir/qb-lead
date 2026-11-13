@@ -175,3 +175,117 @@ def test_users_cannot_make_themselves_platform_admin(conn: Conn, world: World) -
             "insert into public.platform_admins (user_id, level) values (%s, 'super')",
             (world.owner_a,),
         )
+
+
+# --- Regression tests for the 2026-11-13 security review -------------------------------
+
+
+def _invite(conn: Conn, tenant: str, email: str, role: str, invited_by: str) -> str:
+    as_owner(conn)
+    row = conn.execute(
+        "insert into public.invitations (tenant_id, email, role, token_hash, invited_by)"
+        " values (%s, %s, %s, %s, %s) returning id",
+        (tenant, email, role, hashlib.sha256(secrets.token_bytes(16)).hexdigest(), invited_by),
+    ).fetchone()
+    assert row is not None
+    return str(row["id"])
+
+
+def _make_member_a_admin(conn: Conn, world: World) -> None:
+    as_owner(conn)
+    conn.execute(
+        "update public.memberships set role = 'admin' where tenant_id = %s and user_id = %s",
+        (world.tenant_a, world.member_a),
+    )
+
+
+def test_admin_cannot_unrevoke_an_invitation(conn: Conn, world: World) -> None:
+    inv = _invite(conn, world.tenant_a, "future-admin@example.com", "admin", world.owner_a)
+    conn.execute("update public.invitations set revoked_at = now() where id = %s", (inv,))
+    _make_member_a_admin(conn, world)
+    act_as(conn, world.claims(world.member_a))
+    with expect_sqlstate(conn, "42501"):
+        conn.execute("update public.invitations set revoked_at = null where id = %s", (inv,))
+
+
+def test_admin_cannot_revoke_owners_admin_invitation(conn: Conn, world: World) -> None:
+    inv = _invite(conn, world.tenant_a, "future-admin@example.com", "admin", world.owner_a)
+    _make_member_a_admin(conn, world)
+    act_as(conn, world.claims(world.member_a))
+    with expect_sqlstate(conn, "LG404"):
+        conn.execute("select private.revoke_invitation(%s)", (inv,))
+
+
+def test_owner_can_revoke_and_it_is_audited(conn: Conn, world: World) -> None:
+    inv = _invite(conn, world.tenant_a, "someone@example.com", "member", world.owner_a)
+    act_as(conn, world.claims(world.owner_a))
+    conn.execute("select private.revoke_invitation(%s)", (inv,))
+    as_owner(conn)
+    row = conn.execute(
+        "select actor_user_id::text as actor from public.audit_log"
+        " where action = 'invitation.revoked' and target_id = %s",
+        (inv,),
+    ).fetchone()
+    assert row == {"actor": world.owner_a}
+
+
+def test_direct_role_change_is_audited(conn: Conn, world: World) -> None:
+    act_as(conn, world.claims(world.owner_a))
+    cur = conn.execute(
+        "update public.memberships set role = 'admin' where tenant_id = %s and user_id = %s",
+        (world.tenant_a, world.member_a),
+    )
+    assert cur.rowcount == 1
+    as_owner(conn)
+    row = conn.execute(
+        "select actor_user_id::text as actor, metadata from public.audit_log"
+        " where action = 'membership.role_changed' and target_id = %s"
+        " order by id desc limit 1",
+        (world.member_a,),
+    ).fetchone()
+    assert row == {"actor": world.owner_a, "metadata": {"from": "member", "to": "admin"}}
+
+
+def test_cross_tenant_invite_reveals_nothing(conn: Conn, world: World) -> None:
+    # owner-b is a member of B; A must get a plain permission error, not "already a member".
+    act_as(conn, world.claims(world.owner_a))
+    with expect_sqlstate(conn, "42501"):
+        conn.execute(
+            "insert into public.invitations (tenant_id, email, role, token_hash)"
+            " values (%s, 'owner-b@example.com', 'member', %s)",
+            (world.tenant_b, hashlib.sha256(b"probe").hexdigest()),
+        )
+
+
+def test_inviting_an_existing_member_is_refused(conn: Conn, world: World) -> None:
+    act_as(conn, world.claims(world.owner_a))
+    with expect_sqlstate(conn, "LG409"):
+        conn.execute(
+            "insert into public.invitations (tenant_id, email, role, token_hash)"
+            " values (%s, 'member-a@example.com', 'member', %s)",
+            (world.tenant_a, hashlib.sha256(b"dup").hexdigest()),
+        )
+
+
+def test_daily_invitation_cap(conn: Conn, world: World) -> None:
+    act_as(conn, world.claims(world.owner_a))
+    with expect_sqlstate(conn, "LG429"):
+        for i in range(51):
+            conn.execute(
+                "insert into public.invitations (tenant_id, email, role, token_hash)"
+                " values (%s, %s, 'member', %s)",
+                (
+                    world.tenant_a,
+                    f"cap-{i}-{secrets.token_hex(3)}@example.com",
+                    hashlib.sha256(secrets.token_bytes(16)).hexdigest(),
+                ),
+            )
+
+
+def test_company_name_rejects_control_characters(conn: Conn, world: World) -> None:
+    act_as(conn, world.claims(world.owner_a))
+    with expect_sqlstate(conn, "23514"):
+        conn.execute(
+            "update public.tenants set name = %s where id = %s",
+            ("Evil\r\nBcc: victim@example.com", world.tenant_a),
+        )
