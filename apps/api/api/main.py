@@ -7,10 +7,16 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from api import errors
 from api.middleware import RequestIdMiddleware
+from api.routes import me
 from core import db
 from core.logging import configure_logging
 from core.settings import get_settings
+
+# The only routes reachable without a login. Anything else answers 401 without a valid
+# token (apps/api/tests/test_public_routes.py checks every route).
+PUBLIC_ROUTES: frozenset[str] = frozenset({"/healthz"})
 
 
 @asynccontextmanager
@@ -36,9 +42,12 @@ def create_app(*, with_db: bool = True) -> FastAPI:
         openapi_url="/openapi.json" if settings.app_env in ("local", "test") else None,
     )
     app.add_middleware(RequestIdMiddleware)
+    errors.install(app)
 
     @app.get("/healthz", tags=["meta"])
     async def healthz() -> dict[str, str]:
         return {"status": "ok", "commit": settings.git_commit}
+
+    app.include_router(me.router)
 
     return app
