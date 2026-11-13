@@ -71,7 +71,7 @@ testpaths = ["packages/core/tests", "apps/api/tests", "apps/worker/tests", "scri
 pythonpath = ["scripts"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-addopts = "-ra --import-mode=importlib"
+addopts = "-ra --import-mode=importlib -m 'not db'"
 markers = [
     "db: needs the local Supabase database (run with `make test-db`)",
 ]
