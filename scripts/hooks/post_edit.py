@@ -1,7 +1,7 @@
 """PostToolUse hook for Edit/Write: format and check the file that just changed.
 
   *.py                    -> ruff format, ruff check --fix, mypy
-  apps/web/**/*.ts(x)     -> prettier, eslint, tsc --noEmit
+  apps/web/**/*.ts(x)     -> prettier, eslint, next typegen + tsc --noEmit
   supabase/migrations/*.sql -> scripts/check_migrations.py (RLS on every new table)
 
 Problems are reported with exit 2 so Claude sees them at once.
@@ -56,7 +56,7 @@ def main() -> int:
         code, out = run(["npx", "eslint", str(path)], WEB)
         if code:
             problems.append(out)
-        code, out = run(["npx", "tsc", "--noEmit"], WEB)
+        code, out = run(["npm", "run", "--silent", "typecheck"], WEB)  # typegen + tsc
         if code:
             problems.append(out)
     elif path.suffix == ".sql" and rel.parts[:2] == ("supabase", "migrations"):
