@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from api import errors
+from api.admin import catalogue as admin_catalogue
 from api.admin import routes as admin_routes
 from api.middleware import BodySizeLimitMiddleware, RequestIdMiddleware
 from api.routes import invitations, me, onboarding, portfolio, profile, team, tenants
@@ -58,5 +59,6 @@ def create_app(*, with_db: bool = True) -> FastAPI:
     app.include_router(profile.router)
     app.include_router(portfolio.router)
     app.include_router(admin_routes.router)
+    app.include_router(admin_catalogue.router)
 
     return app
