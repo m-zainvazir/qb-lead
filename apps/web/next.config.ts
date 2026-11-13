@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
       { source: "/auth/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
     ];
   },
+  // Portfolio uploads go through a server action: allow 10 MB files plus multipart overhead.
+  experimental: { serverActions: { bodySizeLimit: "11mb" } },
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

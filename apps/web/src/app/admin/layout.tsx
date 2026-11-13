@@ -9,6 +9,9 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
           <Link href="/admin" className="underline">
             Companies
           </Link>
+          <Link href="/admin/catalogue" className="underline">
+            Catalogue
+          </Link>
           <Link href="/admin/mfa" className="underline">
             Authenticator
           </Link>

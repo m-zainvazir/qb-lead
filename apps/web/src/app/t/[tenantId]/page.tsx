@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 
 import { Loading } from "@/components/loading";
@@ -20,8 +21,24 @@ async function Home({ params }: Pick<PageProps<"/t/[tenantId]">, "params">) {
       <p className="text-sm text-neutral-600">
         Signed in as {me.email}, {company.role} of this {company.type}.
       </p>
-      <section className="rounded-md border border-dashed p-6 text-sm text-neutral-600">
-        No leads yet. Your lead inbox arrives once sources and matching are set up.
+      <section className="flex flex-col gap-2 rounded-md border border-dashed p-6 text-sm text-neutral-600">
+        <p>No leads yet. Your lead inbox arrives once sources and matching are set up.</p>
+        <p>
+          Meanwhile, check{" "}
+          <Link href={`/t/${company.id}/profile`} className="underline">
+            what we will look for
+          </Link>
+          {company.role !== "member" && (
+            <>
+              {" "}
+              or{" "}
+              <Link href={`/t/${company.id}/onboarding`} className="underline">
+                answer the setup questions
+              </Link>
+            </>
+          )}
+          .
+        </p>
       </section>
     </>
   );

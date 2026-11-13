@@ -15,14 +15,15 @@ export class ApiError extends Error {
 }
 
 type Options = {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
+  form?: FormData; // multipart upload; sent as-is
   tenantId?: string;
 };
 
 // Calls the FastAPI backend from the server with the user's access token. The token
 // never reaches the browser; the API verifies it and re-checks X-Tenant-Id itself.
-export async function api<T>(path: string, { method = "GET", body, tenantId }: Options = {}) {
+export async function api<T>(path: string, { method = "GET", body, form, tenantId }: Options = {}) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
@@ -37,9 +38,9 @@ export async function api<T>(path: string, { method = "GET", body, tenantId }: O
     res = await fetch(`${env.apiUrl}${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: form ?? (body === undefined ? undefined : JSON.stringify(body)),
       cache: "no-store",
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(form ? 60_000 : 15_000),
     });
   } catch {
     throw new ApiError(503, "The service is not reachable. Try again in a moment.");
