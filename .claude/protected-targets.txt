@@ -1,0 +1,3 @@
+# One per line: production project refs, hostnames or database names.
+# Any shell command that contains one of these is blocked by scripts/hooks/guard_commands.py.
+# Add the production Supabase project ref and host here as soon as they exist.

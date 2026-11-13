@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Git pre-commit: no secret reaches the repo. Enable once per clone with:
+#   git config core.hooksPath .githooks
+set -euo pipefail
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks is not installed (winget install Gitleaks.Gitleaks / brew install gitleaks)." >&2
+  exit 1
+fi
+gitleaks protect --staged --redact --no-banner
+
+# New or changed migrations must turn on row-level security for every table they create.
+mapfile -t migrations < <(git diff --cached --name-only --diff-filter=AM -- 'supabase/migrations/*.sql')
+if [ "${#migrations[@]}" -gt 0 ]; then
+  python scripts/check_migrations.py "${migrations[@]}"
+fi
