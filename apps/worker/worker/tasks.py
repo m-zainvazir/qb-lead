@@ -46,3 +46,17 @@ def compile_pending_profiles() -> int:
     for tenant_id in tenants:
         compile_profile.delay(str(tenant_id))
     return len(tenants)
+
+
+@app.task(  # type: ignore[untyped-decorator]
+    name="worker.tasks.process_portfolio_item",
+    autoretry_for=(OSError,),
+    retry_backoff=True,
+    max_retries=5,
+    soft_time_limit=120,
+    time_limit=180,
+)
+def process_portfolio_item(item_id: str) -> str:
+    from worker import portfolio
+
+    return portfolio.process_item(UUID(item_id))

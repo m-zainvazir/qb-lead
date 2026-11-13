@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from api import errors
 from api.admin import routes as admin_routes
 from api.middleware import BodySizeLimitMiddleware, RequestIdMiddleware
-from api.routes import invitations, me, onboarding, profile, team, tenants
+from api.routes import invitations, me, onboarding, portfolio, profile, team, tenants
 from core import db
 from core.logging import configure_logging
 from core.settings import get_settings
@@ -56,6 +56,7 @@ def create_app(*, with_db: bool = True) -> FastAPI:
     app.include_router(invitations.router)
     app.include_router(onboarding.router)
     app.include_router(profile.router)
+    app.include_router(portfolio.router)
     app.include_router(admin_routes.router)
 
     return app

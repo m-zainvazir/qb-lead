@@ -7,6 +7,7 @@ x-python-env: &python-env
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
   SUPABASE_URL: http://host.docker.internal:54321
   SUPABASE_JWT_ISSUER: http://127.0.0.1:54321/auth/v1
+  SUPABASE_PUBLIC_URL: http://127.0.0.1:54321
   SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?set in .env}
   SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-}
   DATABASE_URL_API: postgresql://app_api:${APP_DB_PASSWORD:?set in .env}@host.docker.internal:54322/postgres

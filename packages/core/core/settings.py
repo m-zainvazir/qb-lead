@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     database_url_admin: SecretStr | None = None  # migrations, db-roles, tests only
     app_db_password: SecretStr | None = None  # read only by `api.cli db-roles`
     system_db_password: SecretStr | None = None
+    supabase_public_url: str | None = None  # browser-facing Supabase URL, if different
     supabase_jwt_issuer: str | None = None  # set when the API reaches Supabase on another host
     jwt_audience: str = "authenticated"
     jwks_cache_seconds: int = Field(default=600, ge=30)
@@ -56,6 +57,10 @@ class Settings(BaseSettings):
     @property
     def jwt_issuer(self) -> str:
         return self.supabase_jwt_issuer or f"{self.supabase_url.rstrip('/')}/auth/v1"
+
+    @property
+    def public_supabase_url(self) -> str:
+        return (self.supabase_public_url or self.supabase_url).rstrip("/")
 
     @property
     def is_production(self) -> bool:
