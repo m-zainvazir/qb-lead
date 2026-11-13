@@ -61,6 +61,10 @@ format: ## Format Python and TypeScript
 test: ## Fast unit tests (no database)
 	uv run pytest -q -m "not db"
 
+.PHONY: test-db
+test-db: ## Database and isolation tests against the LOCAL stack
+	LEADGEN_USE_REAL_ENV=1 uv run pytest -q -m db packages apps tests
+
 .PHONY: migrate
 migrate: ## Apply new local migrations (no reset, keeps data)
 	$(SUPABASE) migration up --local

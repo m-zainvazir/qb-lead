@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
+client_ip_var: ContextVar[str | None] = ContextVar("client_ip", default=None)
 
 # Attributes every LogRecord has; anything else passed via `extra=` is emitted as a field.
 _STANDARD_ATTRS = set(logging.LogRecord("", 0, "", 0, "", None, None).__dict__.keys()) | {
