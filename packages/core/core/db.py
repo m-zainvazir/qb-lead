@@ -20,7 +20,7 @@ _pools: dict[str, AsyncConnectionPool] = {}
 
 async def _configure(conn: AsyncConnection) -> None:
     timeout = get_settings().db_statement_timeout_ms
-    await conn.execute(f"set statement_timeout = {int(timeout)}")
+    await conn.execute("select set_config('statement_timeout', %s, false)", (f"{int(timeout)}ms",))
     await conn.commit()
 
 

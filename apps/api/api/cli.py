@@ -49,7 +49,9 @@ def _db_roles(_args: argparse.Namespace) -> int:
         return 2
     with psycopg.connect(s.database_url_admin.get_secret_value(), autocommit=True) as conn:
         for role, password in passwords.items():
-            conn.execute(
+            # ALTER ROLE cannot take bind parameters; psycopg's sql.Identifier/sql.Literal
+            # quote both parts safely (semgrep's SQLAlchemy raw-query rule misfires here).
+            conn.execute(  # nosemgrep
                 sql.SQL("alter role {} with password {}").format(
                     sql.Identifier(role), sql.Literal(password)
                 )
