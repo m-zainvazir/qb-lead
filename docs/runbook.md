@@ -36,6 +36,17 @@ make dev              # Supabase, then API/worker/scheduler/Redis containers, th
 - After a reset, `make db-roles` sets the `app_api` / `app_system` passwords again (`make db-reset` does this for you).
 - Never edit a committed migration. Write a new one.
 
+## Tenants, logins and isolation (module 1)
+
+- Two DB login roles: `app_api` (user requests, RLS applies) and `app_system` (worker and admin only). See `docs/decisions/0001-db-access.md`.
+- Test data: `make seed-test` creates Agency A (owner, member), Agency B (owner) and a platform admin with TOTP, and writes `.env.test.local` (tokens last 15 minutes).
+- Isolation checks: `make test-isolation`, or the full terminal tests with `bash scripts/rls_terminal_tests.sh` (or the `rls-test` skill).
+- New tenant table: `make migration-tenant name=<table>`, then add a factory in `tests/isolation/factories.py`; the suite fails until you do.
+- First platform admin: `supabase/snippets/create_platform_admin.sql` (SQL only, never a screen). The admin then enrols an authenticator at `/admin/mfa`; admin routes need aal2.
+- Someone locked out of a company: check `memberships` and the company's `status` (members of suspended companies see nothing).
+- "A company must keep at least one owner": promote another member to owner first.
+- Who did what: `select * from audit_log where tenant_id = '<id>' order by occurred_at desc limit 50;` (append-only; entries cannot be edited or deleted).
+
 ## Debugging
 
 - "Database pools are not open": the API started without its lifespan; check `make logs` for a settings error at startup.
@@ -47,5 +58,8 @@ make dev              # Supabase, then API/worker/scheduler/Redis containers, th
 Not set up yet (module 0's staging step is deferred). When it is:
 
 - Add the production project ref and host to `.claude/protected-targets.txt`.
+- Create the `app_api` / `app_system` passwords per environment (`python -m api.cli db-roles` with that environment's values, from a machine allowed to reach it), and set `SUPABASE_JWT_ISSUER` if the API reaches Supabase on a different host than the public URL.
+- Run uvicorn with `--proxy-headers --forwarded-allow-ips=<proxy ip>` so audit entries record the real client IP.
+- Copy the email templates (`supabase/templates/email/*.html`) into the hosted project, and set Site URL and redirect URLs.
 - Turn on leaked-password protection (HIBP) and MFA in the hosted Supabase Auth settings.
 - Enable database backups before any real data arrives.
