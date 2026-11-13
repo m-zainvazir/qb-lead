@@ -88,3 +88,8 @@ audit: requirements ## Secrets, insecure patterns and vulnerable packages
 	gitleaks detect --source . --redact
 	uv run pip-audit -r apps/api/requirements.txt -r apps/worker/requirements.txt
 	cd apps/web && npm audit --audit-level=high
+
+.PHONY: migration-tenant
+migration-tenant: ## New tenant-table migration from the template: make migration-tenant name=leads
+	@test -n "$(name)" || (echo "usage: make migration-tenant name=<table>" && exit 2)
+	uv run python scripts/new_tenant_table.py $(name)
