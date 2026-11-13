@@ -17,8 +17,8 @@ Last update: 2026-11-14.
 - [x] M2-1 Catalogue migrations (`services`, `problems`, `technologies`, links, `markets`, `signal_types`, `onboarding_questions`) and seed data: AI automation, voice agents, web development
 - [x] M2-2 Tenant tables from the module 1 template: `tenant_profiles` (versioned), `tenant_services`, `tenant_markets`, `tenant_signals`, `tenant_exclusions`, `portfolio_items`, `profile_compilations`, `service_fingerprints`, `onboarding_progress`; isolation factories
 - [~] M2-3 Questionnaire as data; API to read questions, save answers and resume (done); wizard screens rendered from data (to do)
-- [ ] M2-4 Profile compiler as an idempotent worker job (search terms per source, versioned)
-- [ ] M2-5 Embeddings behind an interface (model name and size stored with every vector); `re-embed` command; ADR 0002; minimal `metered_call()` that records cost
+- [x] M2-4 Profile compiler as an idempotent worker job (search terms per source, versioned)
+- [x] M2-5 Embeddings behind an interface (model name and size stored with every vector); `re-embed` command; ADR 0002; minimal `metered_call()` that records cost
 - [ ] M2-6 Portfolio upload: private bucket, tenant folders, storage policies, size cap, content-type sniffing, extraction in the worker with limits, signed short-lived links
 - [ ] M2-7 Preview screen ("here is what we will look for") from a fixed set of sample posts
 - [ ] M2-8 Admin: add a service, market, signal or question as data

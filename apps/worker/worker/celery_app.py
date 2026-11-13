@@ -26,6 +26,10 @@ app.conf.update(
     enable_utc=True,
     beat_schedule={
         "heartbeat": {"task": "worker.tasks.heartbeat", "schedule": 60.0},
+        "compile-pending-profiles": {
+            "task": "worker.tasks.compile_pending_profiles",
+            "schedule": 30.0,
+        },
     },
 )
 

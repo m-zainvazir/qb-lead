@@ -46,11 +46,13 @@ ban-relative-imports = "all"
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 # CLAUDE.md: only the worker and the admin module may use the service-role path.
 "core.db.system_db".msg = "system_db() bypasses row-level security. Only apps/worker and apps/api/api/admin may import it; use user_db() instead."
+"core.db.system_db_sync".msg = "system_db_sync() bypasses row-level security. Only apps/worker (and core.metering) may import it."
 
 [tool.ruff.lint.per-file-ignores]
 "apps/worker/**" = ["TID251"]
 "apps/api/api/admin/**" = ["TID251"]
 "packages/core/core/db.py" = ["TID251"]
+"packages/core/core/metering.py" = ["TID251"]
 "**/tests/**" = ["S105", "S106", "S311"]
 "tests/**" = ["S105", "S106", "S311", "S608", "TID251", "E402"]
 

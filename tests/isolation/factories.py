@@ -179,6 +179,15 @@ def portfolio_items(conn: Conn, tenant_id: str, users: dict[str, str]) -> dict[s
     }
 
 
+def usage_events(conn: Conn, tenant_id: str, users: dict[str, str]) -> dict[str, Any]:
+    conn.execute(
+        "insert into public.usage_events (tenant_id, provider, operation, units, unit)"
+        " values (%s, 'test', 'isolation.seed', 1, 'call')",
+        (tenant_id,),
+    )
+    return {"tenant_id": tenant_id, "provider": "forged", "operation": "x", "cost_usd": 0}
+
+
 FACTORIES: dict[str, Factory] = {
     "tenants": tenants,
     "memberships": memberships,
@@ -193,4 +202,5 @@ FACTORIES: dict[str, Factory] = {
     "profile_compilations": profile_compilations,
     "service_fingerprints": service_fingerprints,
     "portfolio_items": portfolio_items,
+    "usage_events": usage_events,
 }

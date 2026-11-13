@@ -15,6 +15,9 @@ x-python-env: &python-env
   WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:3000}
   SMTP_HOST: host.docker.internal
   SMTP_PORT: "54325"
+  EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-fastembed}
+  EMBEDDING_CACHE_DIR: /models
+  SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?set in .env}
 
 x-python-build: &python-build
   context: ..
@@ -43,6 +46,7 @@ services:
     image: leadgen-worker:latest
     command: ["celery", "-A", "worker.celery_app", "worker", "--loglevel=INFO", "--concurrency=2"]
     environment: *python-env
+    volumes: ["models:/models"]  # embedding model cache, downloaded once
     extra_hosts: ["host.docker.internal:host-gateway"]
     depends_on:
       redis: { condition: service_healthy }
@@ -76,3 +80,4 @@ services:
 
 volumes:
   redis-data:
+  models:

@@ -12,10 +12,11 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import AsyncIterator, Mapping
-from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator, Iterator, Mapping
+from contextlib import asynccontextmanager, contextmanager
 from typing import Any
 
+import psycopg
 from psycopg import AsyncConnection
 from psycopg.rows import DictRow, dict_row
 from psycopg_pool import AsyncConnectionPool
@@ -112,3 +113,18 @@ async def system_db() -> AsyncIterator[Conn]:
         await conn.execute("set local role service_role")
         await _set_request_context(conn)
         yield conn
+
+
+@contextmanager
+def system_db_sync() -> Iterator[psycopg.Connection[DictRow]]:
+    """Synchronous system path for Celery tasks (the worker is not async).
+
+    Same rules as system_db(): worker and admin only. One short connection per use;
+    the transaction commits when the block exits without an error.
+    """
+    url = get_settings().database_url_system.get_secret_value()
+    with psycopg.connect(url, row_factory=dict_row, connect_timeout=10, autocommit=True) as conn:
+        conn.execute("set statement_timeout = '60s'")
+        with conn.transaction():
+            conn.execute("set local role service_role")
+            yield conn

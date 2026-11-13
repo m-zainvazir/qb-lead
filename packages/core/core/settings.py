@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     db_pool_min: int = Field(default=1, ge=0)
     db_pool_max: int = Field(default=10, ge=1)
     db_statement_timeout_ms: int = Field(default=15_000, ge=100)
+    embedding_provider: Literal["fastembed", "hash"] = "fastembed"
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
+    embedding_cache_dir: str | None = None
+    embedding_cost_per_1k_chars: float = Field(default=0.0, ge=0)
+    storage_bucket: str = "portfolio"
     smtp_host: str = "127.0.0.1"
     smtp_port: int = 54325
     smtp_from: str = "no-reply@leadgen.local"

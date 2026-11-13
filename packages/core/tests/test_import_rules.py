@@ -15,7 +15,9 @@ ALLOWED = [
     ROOT / "apps" / "worker",
     ROOT / "apps" / "api" / "api" / "admin",
     ROOT / "packages" / "core" / "core" / "db.py",
+    ROOT / "packages" / "core" / "core" / "metering.py",  # records usage only
 ]
+NAMES = ("system_db", "system_db_sync")
 
 
 def _allowed(path: Path) -> bool:
@@ -27,14 +29,14 @@ def _uses_system_db(tree: ast.AST) -> bool:
         if (
             isinstance(node, ast.ImportFrom)
             and node.module == "core.db"
-            and any(alias.name in ("system_db", "*") for alias in node.names)
+            and any(alias.name in (*NAMES, "*") for alias in node.names)
         ):
             return True
-        if isinstance(node, ast.Attribute) and node.attr == "system_db":
+        if isinstance(node, ast.Attribute) and node.attr in NAMES:
             return True
-        if isinstance(node, ast.Name) and node.id == "system_db":
+        if isinstance(node, ast.Name) and node.id in NAMES:
             return True
-        if isinstance(node, ast.Constant) and node.value == "system_db":
+        if isinstance(node, ast.Constant) and node.value in NAMES:
             return True  # getattr(db, "system_db")
     return False
 

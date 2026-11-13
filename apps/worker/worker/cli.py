@@ -4,12 +4,19 @@ from __future__ import annotations
 
 import argparse
 import sys
+from uuid import UUID
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m worker.cli")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("heartbeat", help="Queue one heartbeat task on the broker")
+    comp = sub.add_parser("compile", help="Compile one company's profile now (in this process)")
+    comp.add_argument("tenant_id", type=UUID)
+    sub.add_parser(
+        "re-embed",
+        help="Recompute every fingerprint and portfolio vector with the current embedding model",
+    )
     args = parser.parse_args(argv)
 
     if args.command == "heartbeat":
@@ -17,6 +24,26 @@ def main(argv: list[str] | None = None) -> int:
 
         result = heartbeat.delay()
         print(f"queued heartbeat task {result.id}")
+    elif args.command == "compile":
+        from worker import compiler
+
+        print(compiler.compile_profile(args.tenant_id))
+    elif args.command == "re-embed":
+        from core.db import system_db_sync
+        from worker import compiler
+
+        with system_db_sync() as conn:
+            tenants = [
+                r["tenant_id"]
+                for r in conn.execute(
+                    "select tenant_id from public.tenant_profiles order by tenant_id"
+                ).fetchall()
+            ]
+        for tenant_id in tenants:
+            print(tenant_id, compiler.compile_profile(tenant_id, force=True))
+        from worker import portfolio
+
+        print("portfolio items re-embedded:", portfolio.re_embed_all())
     return 0
 
 

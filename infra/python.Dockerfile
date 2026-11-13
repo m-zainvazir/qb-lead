@@ -17,8 +17,9 @@ RUN uv sync --frozen --no-dev --no-editable --package ${PACKAGE}
 
 FROM python:3.12-slim
 ARG GIT_COMMIT=dev
-ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1 GIT_COMMIT=${GIT_COMMIT}
-RUN groupadd --system --gid 10001 app && useradd --system --uid 10001 --gid app --no-create-home app
+ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1 GIT_COMMIT=${GIT_COMMIT} \
+    HOME=/tmp HF_HOME=/models/hf
+RUN groupadd --system --gid 10001 app && useradd --system --uid 10001 --gid app --no-create-home app  && mkdir -p /models && chown app:app /models
 WORKDIR /app
 COPY --from=build --chown=app:app /app/.venv /app/.venv
 USER 10001
