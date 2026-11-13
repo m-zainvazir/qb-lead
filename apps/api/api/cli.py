@@ -60,6 +60,16 @@ def _db_roles(_args: argparse.Namespace) -> int:
     return 0
 
 
+@command(
+    "seed-test",
+    "LOCAL ONLY: two test agencies, a member and a platform admin; writes .env.test.local",
+)
+def _seed_test(_args: argparse.Namespace) -> int:
+    from api.seed_test import run
+
+    return run()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m api.cli")
     sub = parser.add_subparsers(dest="command", required=True)

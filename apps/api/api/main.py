@@ -9,7 +9,7 @@ from fastapi import FastAPI
 
 from api import errors
 from api.middleware import RequestIdMiddleware
-from api.routes import me
+from api.routes import invitations, me, team, tenants
 from core import db
 from core.logging import configure_logging
 from core.settings import get_settings
@@ -49,5 +49,8 @@ def create_app(*, with_db: bool = True) -> FastAPI:
         return {"status": "ok", "commit": settings.git_commit}
 
     app.include_router(me.router)
+    app.include_router(tenants.router)
+    app.include_router(team.router)
+    app.include_router(invitations.router)
 
     return app

@@ -97,3 +97,7 @@ audit: requirements ## Secrets, insecure patterns and vulnerable packages
 migration-tenant: ## New tenant-table migration from the template: make migration-tenant name=leads
 	@test -n "$(name)" || (echo "usage: make migration-tenant name=<table>" && exit 2)
 	uv run python scripts/new_tenant_table.py $(name)
+
+.PHONY: seed-test
+seed-test: ## LOCAL ONLY: seed Agency A/B test users and write .env.test.local (tokens last 15 min)
+	uv run python -m api.cli seed-test
