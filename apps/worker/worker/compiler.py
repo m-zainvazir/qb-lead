@@ -16,7 +16,7 @@ from psycopg.rows import DictRow
 from psycopg.types.json import Jsonb
 
 from core.db import system_db_sync
-from core.embeddings import get_embedder, to_pgvector
+from core.embeddings import Embedder, get_embedder, to_pgvector
 from core.metering import metered_call
 from core.settings import get_settings
 
@@ -94,6 +94,102 @@ def fingerprint_text(svc: dict[str, Any]) -> str:
     return ". ".join(parts)[:8000]
 
 
+PREVIEW_MATCH = 0.70  # cosine; tuned on the seeded sample posts (bge-small-en-v1.5)
+
+
+def _cosine(a: list[float], b: list[float]) -> float:
+    dot = sum(x * y for x, y in zip(a, b, strict=True))
+    na = sum(x * x for x in a) ** 0.5
+    nb = sum(y * y for y in b) ** 0.5
+    return dot / (na * nb) if na and nb else 0.0
+
+
+def rank_samples(
+    samples: list[dict[str, Any]],
+    services: list[tuple[str, list[float]]],
+    profile: dict[str, Any],
+    threshold: float = PREVIEW_MATCH,
+) -> list[dict[str, Any]]:
+    """Pure function: which sample posts would reach this company, and why (plain words)."""
+    markets = {m["code"] for m in profile.get("markets", [])}
+    signal_labels = {
+        s["key"]: s.get("label", s["key"])
+        for group in ("hot", "warm")
+        for s in profile.get("signals", {}).get(group, [])
+    }
+    exclusions = [e.lower() for e in profile.get("exclusions", [])]
+    out = []
+    for sample in samples:
+        text = f"{sample['title']} {sample['body']}".lower()
+        best_name, best = "", 0.0
+        for name, vector in services:
+            score = _cosine(sample["vector"], vector)
+            if score > best:
+                best_name, best = name, score
+        hit = next((e for e in exclusions if e in text), None)
+        if hit:
+            decision, reason = "skip", f'mentions "{hit}", which you asked us to avoid'
+        elif best < threshold:
+            decision, reason = "skip", "is not about the services you offer"
+        elif markets and sample.get("market_code") and sample["market_code"] not in markets:
+            decision = "skip"
+            reason = (
+                f"is about your {best_name} service but comes from {sample['market_code']},"
+                " outside your markets"
+            )
+        else:
+            decision = "reach"
+            reason = f"matches your {best_name} service"
+            if sample.get("signal_key") in signal_labels:
+                reason += f' and the signal "{signal_labels[sample["signal_key"]]}"'
+        out.append(
+            {
+                "title": sample["title"],
+                "source": sample["source"],
+                "market": sample.get("market_code"),
+                "score": round(best, 3),
+                "decision": decision,
+                "reason": reason,
+            }
+        )
+    out.sort(key=lambda r: (r["decision"] != "reach", -r["score"]))
+    return out
+
+
+def _sample_vectors(conn: Conn, embedder: Embedder) -> list[dict[str, Any]]:
+    """Active sample posts with an embedding from the current model (computed once per model)."""
+    missing = conn.execute(
+        "select id, title, body from public.sample_posts"
+        " where is_active and embedding_model is distinct from %s",
+        (embedder.model,),
+    ).fetchall()
+    if missing:
+        texts = [f"{r['title']}. {r['body']}" for r in missing]
+        vectors = metered_call(
+            lambda: embedder.embed(texts),
+            provider=embedder.model,
+            operation="embed.sample_posts",
+            tenant_id=None,
+            units=sum(len(t) for t in texts) / 1000,
+            unit="1k_chars",
+            unit_cost_usd=get_settings().embedding_cost_per_1k_chars,
+        )
+        for row, vector in zip(missing, vectors, strict=True):
+            conn.execute(
+                "update public.sample_posts set embedding = %s::extensions.vector,"
+                " embedding_model = %s where id = %s",
+                (to_pgvector(vector), embedder.model, row["id"]),
+            )
+    rows = conn.execute(
+        "select title, body, source, market_code, signal_key, embedding::text as vec"
+        " from public.sample_posts where is_active and embedding_model = %s",
+        (embedder.model,),
+    ).fetchall()
+    return [
+        {**dict(r), "vector": [float(x) for x in r["vec"].strip("[]").split(",")]} for r in rows
+    ]
+
+
 def _load(conn: Conn, tenant_id: UUID) -> tuple[dict[str, Any], list[dict[str, Any]]] | None:
     profile = conn.execute(
         "select version, min_budget_usd, client_sizes from public.tenant_profiles"
@@ -131,7 +227,8 @@ def _load(conn: Conn, tenant_id: UUID) -> tuple[dict[str, Any], list[dict[str, A
         (tenant_id,),
     ).fetchall()
     signals = conn.execute(
-        "select st.key, st.temperature, coalesce(ts.weight, st.default_weight)::float as weight"
+        "select st.key, st.label, st.temperature,"
+        " coalesce(ts.weight, st.default_weight)::float as weight"
         " from public.tenant_signals ts join public.signal_types st on st.id = ts.signal_type_id"
         " where ts.tenant_id = %s and st.is_active order by st.sort_order",
         (tenant_id,),
@@ -225,6 +322,11 @@ def compile_profile(tenant_id: UUID, *, force: bool = False) -> str:
                     text,
                 ),
             )
+        terms["preview"] = rank_samples(
+            _sample_vectors(conn, embedder),
+            [(svc["name"], vec) for svc, vec in zip(services, vectors, strict=True)],
+            data,
+        )
         cost = round(chars / 1000 * get_settings().embedding_cost_per_1k_chars, 6)
         conn.execute(
             "update public.profile_compilations set status = 'ready', search_terms = %s,"

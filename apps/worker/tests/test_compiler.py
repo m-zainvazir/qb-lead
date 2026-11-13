@@ -47,3 +47,54 @@ def test_hash_embedder_is_deterministic_and_normalised() -> None:
     v1, v2 = e.embed(["missed calls", "missed calls"])
     assert v1 == v2 and len(v1) == 384
     assert abs(sum(x * x for x in v1) - 1.0) < 1e-9
+
+
+def test_preview_explains_each_decision() -> None:
+    from worker.compiler import rank_samples
+
+    voice = [1.0, 0.0, 0.0]
+    samples = [
+        {
+            "title": "Missed calls",
+            "body": "we miss calls",
+            "source": "reddit",
+            "market_code": "US",
+            "signal_key": "request_for_proposal",
+            "vector": [0.9, 0.1, 0.0],
+        },
+        {
+            "title": "Crypto bot",
+            "body": "crypto trading",
+            "source": "reddit",
+            "market_code": "US",
+            "signal_key": None,
+            "vector": [0.9, 0.1, 0.0],
+        },
+        {
+            "title": "Calls in Paris",
+            "body": "phone agent",
+            "source": "reddit",
+            "market_code": "FR",
+            "signal_key": None,
+            "vector": [0.95, 0.0, 0.1],
+        },
+        {
+            "title": "Wedding photos",
+            "body": "photographer",
+            "source": "reddit",
+            "market_code": "US",
+            "signal_key": None,
+            "vector": [0.0, 1.0, 0.0],
+        },
+    ]
+    profile = {
+        "markets": [{"code": "US"}],
+        "signals": {"hot": [{"key": "request_for_proposal", "label": "Asks for quotes"}]},
+        "exclusions": ["crypto"],
+    }
+    out = {r["title"]: r for r in rank_samples(samples, [("Voice agents", voice)], profile)}
+    assert out["Missed calls"]["decision"] == "reach"
+    assert "Asks for quotes" in out["Missed calls"]["reason"]
+    assert "crypto" in out["Crypto bot"]["reason"] and out["Crypto bot"]["decision"] == "skip"
+    assert "outside your markets" in out["Calls in Paris"]["reason"]
+    assert out["Wedding photos"]["reason"] == "is not about the services you offer"
