@@ -15,7 +15,7 @@ Last update: 2026-11-14.
 ## Module 2 task list (in place of a plan-mode approval, since the loop runs unattended)
 
 - [x] M2-1 Catalogue migrations (`services`, `problems`, `technologies`, links, `markets`, `signal_types`, `onboarding_questions`) and seed data: AI automation, voice agents, web development
-- [ ] M2-2 Tenant tables from the module 1 template: `tenant_profiles` (versioned), `tenant_services`, `tenant_markets`, `tenant_signals`, `tenant_exclusions`, `portfolio_items`, `profile_compilations`, `service_fingerprints`, `onboarding_progress`; isolation factories
+- [x] M2-2 Tenant tables from the module 1 template: `tenant_profiles` (versioned), `tenant_services`, `tenant_markets`, `tenant_signals`, `tenant_exclusions`, `portfolio_items`, `profile_compilations`, `service_fingerprints`, `onboarding_progress`; isolation factories
 - [ ] M2-3 Questionnaire as data; API to read questions, save answers and resume; wizard rendered from data
 - [ ] M2-4 Profile compiler as an idempotent worker job (search terms per source, versioned)
 - [ ] M2-5 Embeddings behind an interface (model name and size stored with every vector); `re-embed` command; ADR 0002; minimal `metered_call()` that records cost

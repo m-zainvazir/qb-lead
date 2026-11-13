@@ -62,9 +62,135 @@ def audit_log(conn: Conn, tenant_id: str, users: dict[str, str]) -> dict[str, An
     return {"actor_kind": "user", "tenant_id": tenant_id, "action": "forged.entry"}
 
 
+# --- module 2 -------------------------------------------------------------------------
+ZERO_VECTOR = "[" + ",".join(["0.01"] * 384) + "]"
+
+
+def _id(conn: Conn, table: str, column: str, value: str) -> str:
+    row = conn.execute(f"select id from public.{table} where {column} = %s", (value,)).fetchone()
+    assert row is not None, f"seed row {table}.{column}={value} missing"
+    return str(row["id"])
+
+
+def tenant_profiles(conn: Conn, tenant_id: str, users: dict[str, str]) -> dict[str, Any]:
+    conn.execute(
+        "insert into public.tenant_profiles (tenant_id, type, tone) values (%s, 'agency', 'direct')"
+        " on conflict (tenant_id) do nothing",
+        (tenant_id,),
+    )
+    return {"tenant_id": tenant_id, "type": "freelancer"}
+
+
+def tenant_services(conn: Conn, tenant_id: str, users: dict[str, str]) -> dict[str, Any]:
+    conn.execute(
+        "insert into public.tenant_services (tenant_id, service_id) values (%s, %s)"
+        " on conflict do nothing",
+        (tenant_id, _id(conn, "services", "slug", "ai-automation")),
+    )
+    return {"tenant_id": tenant_id, "custom_name": f"Injected {secrets.token_hex(3)}"}
+
+
+def tenant_markets(conn: Conn, tenant_id: str, users: dict[str, str]) -> dict[str, Any]:
+    conn.execute(
+        "insert into public.tenant_markets (tenant_id, market_id) values (%s, %s)"
+        " on conflict do nothing",
+        (tenant_id, _id(conn, "markets", "code", "US")),
+    )
+    return {"tenant_id": tenant_id, "market_id": _id(conn, "markets", "code", "PT")}
+
+
+def tenant_signals(conn: Conn, tenant_id: str, users: dict[str, str]) -> dict[str, Any]:
+    conn.execute(
+        "insert into public.tenant_signals (tenant_id, signal_type_id) values (%s, %s)"
+        " on conflict do nothing",
+        (tenant_id, _id(conn, "signal_types", "key", "job_post")),
+    )
+    return {
+        "tenant_id": tenant_id,
+        "signal_type_id": _id(conn, "signal_types", "key", "growth_event"),
+    }
+
+
+def tenant_exclusions(conn: Conn, tenant_id: str, users: dict[str, str]) -> dict[str, Any]:
+    conn.execute(
+        "insert into public.tenant_exclusions (tenant_id, value) values (%s, 'gambling')",
+        (tenant_id,),
+    )
+    return {"tenant_id": tenant_id, "kind": "keyword", "value": "injected"}
+
+
+def onboarding_progress(conn: Conn, tenant_id: str, users: dict[str, str]) -> dict[str, Any]:
+    conn.execute(
+        "insert into public.onboarding_progress (tenant_id, current_step) values (%s, 2)"
+        " on conflict (tenant_id) do nothing",
+        (tenant_id,),
+    )
+    return {"tenant_id": tenant_id, "current_step": 1, "answers": "{}"}
+
+
+def profile_compilations(conn: Conn, tenant_id: str, users: dict[str, str]) -> dict[str, Any]:
+    conn.execute(
+        "insert into public.profile_compilations (tenant_id, profile_version, status)"
+        " values (%s, 9000 + floor(random() * 999)::int, 'ready') on conflict do nothing",
+        (tenant_id,),
+    )
+    return {"tenant_id": tenant_id, "profile_version": 1, "status": "ready"}
+
+
+def _tenant_service(conn: Conn, tenant_id: str) -> str:
+    row = conn.execute(
+        "insert into public.tenant_services (tenant_id, custom_name) values (%s, %s) returning id",
+        (tenant_id, f"Fingerprinted {secrets.token_hex(3)}"),
+    ).fetchone()
+    assert row is not None
+    return str(row["id"])
+
+
+def service_fingerprints(conn: Conn, tenant_id: str, users: dict[str, str]) -> dict[str, Any]:
+    service = _tenant_service(conn, tenant_id)
+    conn.execute(
+        "insert into public.service_fingerprints (tenant_id, tenant_service_id, profile_version,"
+        " embedding_model, dims, embedding, source_text) values (%s, %s, 1, 'test', 384, %s, 'x')",
+        (tenant_id, service, ZERO_VECTOR),
+    )
+    return {
+        "tenant_id": tenant_id,
+        "tenant_service_id": service,
+        "profile_version": 2,
+        "embedding_model": "test",
+        "dims": 384,
+        "embedding": ZERO_VECTOR,
+        "source_text": "injected",
+    }
+
+
+def portfolio_items(conn: Conn, tenant_id: str, users: dict[str, str]) -> dict[str, Any]:
+    conn.execute(
+        "insert into public.portfolio_items (tenant_id, title, file_path, mime_type, size_bytes)"
+        " values (%s, 'Case study', %s, 'application/pdf', 1000)",
+        (tenant_id, f"{tenant_id}/{secrets.token_hex(8)}.pdf"),
+    )
+    return {
+        "tenant_id": tenant_id,
+        "title": "Injected",
+        "file_path": f"{tenant_id}/{secrets.token_hex(8)}.pdf",
+        "mime_type": "application/pdf",
+        "size_bytes": 10,
+    }
+
+
 FACTORIES: dict[str, Factory] = {
     "tenants": tenants,
     "memberships": memberships,
     "invitations": invitations,
     "audit_log": audit_log,
+    "tenant_profiles": tenant_profiles,
+    "tenant_services": tenant_services,
+    "tenant_markets": tenant_markets,
+    "tenant_signals": tenant_signals,
+    "tenant_exclusions": tenant_exclusions,
+    "onboarding_progress": onboarding_progress,
+    "profile_compilations": profile_compilations,
+    "service_fingerprints": service_fingerprints,
+    "portfolio_items": portfolio_items,
 }
