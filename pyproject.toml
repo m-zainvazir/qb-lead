@@ -1,0 +1,76 @@
+[project]
+name = "leadgen"
+version = "0.1.0"
+description = "Lead generation platform: Python workspace root"
+requires-python = ">=3.12,<3.13"
+dependencies = ["core", "api", "worker"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "httpx>=0.28",
+    "pip-audit>=2.7",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/core", "apps/api", "apps/worker"]
+
+[tool.uv.sources]
+core = { workspace = true }
+api = { workspace = true }
+worker = { workspace = true }
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["lead-gen-plans", "apps/web"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "TID", "RUF", "SIM"]
+ignore = ["S101"]  # assert is fine in tests and type narrowing
+
+[tool.ruff.lint.isort]
+known-first-party = ["core", "api", "worker"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+# CLAUDE.md: only the worker and the admin module may use the service-role path.
+"core.db.system_db".msg = "system_db() bypasses row-level security. Only apps/worker and apps/api/api/admin may import it; use user_db() instead."
+
+[tool.ruff.lint.per-file-ignores]
+"apps/worker/**" = ["TID251"]
+"apps/api/api/admin/**" = ["TID251"]
+"packages/core/core/db.py" = ["TID251"]
+"**/tests/**" = ["S105", "S106", "S311"]
+"tests/**" = ["S105", "S106", "S311", "TID251"]
+
+# ---------------------------------------------------------------- mypy
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+files = ["packages/core/core", "apps/api/api", "apps/worker/worker"]
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["celery.*", "kombu.*"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+testpaths = ["packages/core/tests", "apps/api/tests", "apps/worker/tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-ra --import-mode=importlib"
+markers = [
+    "db: needs the local Supabase database (run with `make test-db`)",
+]
