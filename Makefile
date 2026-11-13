@@ -63,7 +63,7 @@ test: ## Fast unit tests (no database)
 
 .PHONY: test-db
 test-db: ## Database and isolation tests against the LOCAL stack
-	LEADGEN_USE_REAL_ENV=1 uv run pytest -q -m db packages apps tests
+	LEADGEN_USE_REAL_ENV=1 uv run pytest -q -m db packages apps $(wildcard tests)
 
 .PHONY: migrate
 migrate: ## Apply new local migrations (no reset, keeps data)

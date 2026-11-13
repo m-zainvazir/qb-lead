@@ -59,4 +59,5 @@ def test_service_role_pool_created_in_one_place() -> None:
         and "tests" not in path.parts
         and "database_url_system" in path.read_text(encoding="utf-8")
     ]
-    assert hits == ["packages/core/core/db.py"], hits
+    # settings.py only declares the variable; db.py is the one place that connects with it.
+    assert sorted(hits) == ["packages/core/core/db.py", "packages/core/core/settings.py"], hits
