@@ -1,0 +1,42 @@
+# Secrets: real values live in the host's secret store, never in git
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Original plan bundle (copied into docs/ and CLAUDE.md)
+lead-gen-plans/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.coverage
+htmlcov/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Supabase local state
+supabase/.branches/
+supabase/.temp/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings
+.claude/settings.local.json
