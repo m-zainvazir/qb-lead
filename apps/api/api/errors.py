@@ -10,6 +10,7 @@ import logging
 
 import psycopg
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from core.logging import request_id_var
@@ -58,11 +59,24 @@ async def _db_error(_request: Request, exc: Exception) -> JSONResponse:
     return _body(status, message)
 
 
+async def _validation(_request: Request, exc: Exception) -> JSONResponse:
+    # Never echo the submitted values back (they can be huge, or contain secrets).
+    errors = exc.errors() if isinstance(exc, RequestValidationError) else []
+    detail = [
+        {"type": e.get("type"), "loc": list(e.get("loc", ())), "msg": e.get("msg")}
+        for e in errors[:20]
+    ]
+    return JSONResponse(
+        status_code=422, content={"detail": detail, "request_id": request_id_var.get()}
+    )
+
+
 async def _unhandled(_request: Request, exc: Exception) -> JSONResponse:
     log.error("unhandled_error", exc_info=exc)
     return _body(500, "Something went wrong")
 
 
 def install(app: FastAPI) -> None:
+    app.add_exception_handler(RequestValidationError, _validation)
     app.add_exception_handler(psycopg.Error, _db_error)
     app.add_exception_handler(Exception, _unhandled)

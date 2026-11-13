@@ -8,6 +8,7 @@ dependencies = [
     "pydantic-settings>=2.6",
     "psycopg[binary]>=3.2",
     "psycopg-pool>=3.2",
+    "celery[redis]>=5.4",
 ]
 
 [build-system]

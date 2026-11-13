@@ -9,8 +9,8 @@ from fastapi import FastAPI
 
 from api import errors
 from api.admin import routes as admin_routes
-from api.middleware import RequestIdMiddleware
-from api.routes import invitations, me, team, tenants
+from api.middleware import BodySizeLimitMiddleware, RequestIdMiddleware
+from api.routes import invitations, me, onboarding, profile, team, tenants
 from core import db
 from core.logging import configure_logging
 from core.settings import get_settings
@@ -42,6 +42,7 @@ def create_app(*, with_db: bool = True) -> FastAPI:
         redoc_url=None,
         openapi_url="/openapi.json" if settings.app_env in ("local", "test") else None,
     )
+    app.add_middleware(BodySizeLimitMiddleware)
     app.add_middleware(RequestIdMiddleware)
     errors.install(app)
 
@@ -53,6 +54,8 @@ def create_app(*, with_db: bool = True) -> FastAPI:
     app.include_router(tenants.router)
     app.include_router(team.router)
     app.include_router(invitations.router)
+    app.include_router(onboarding.router)
+    app.include_router(profile.router)
     app.include_router(admin_routes.router)
 
     return app

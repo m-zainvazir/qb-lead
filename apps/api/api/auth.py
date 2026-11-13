@@ -178,15 +178,33 @@ async def current_tenant(
     request: Request,
     x_tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
 ) -> TenantContext:
-    """The signed-in user plus the company named in X-Tenant-Id, checked on the server."""
+    """The signed-in user plus the company named in X-Tenant-Id, checked on the server.
+
+    Without the header, a user who belongs to exactly one company acts in that company
+    (CLI and simple clients); anyone with several companies must name one.
+    """
     _remember_client_ip(request)
     claims = await verify_token(_bearer(request))
-    try:
-        tenant_id = UUID(x_tenant_id or "")
-    except ValueError as exc:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "X-Tenant-Id header is required") from exc
+    tenant_id: UUID | None = None
+    if x_tenant_id:
+        try:
+            tenant_id = UUID(x_tenant_id)
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "X-Tenant-Id is not valid") from exc
 
     async with user_db(claims) as conn:
+        if tenant_id is None:
+            only = await (
+                await conn.execute(
+                    "select array_agg(m.tenant_id) as ids from public.memberships m"
+                    " join public.tenants t on t.id = m.tenant_id"
+                    " where m.user_id = auth.uid() and t.status = 'active'"
+                )
+            ).fetchone()
+            ids = (only or {}).get("ids") or []
+            if len(ids) != 1:
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, "X-Tenant-Id header is required")
+            tenant_id = ids[0]
         row = await (
             await conn.execute(
                 "select private.session_is_active() as active,"
