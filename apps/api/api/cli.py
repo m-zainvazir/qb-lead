@@ -31,6 +31,33 @@ def _check_settings(_args: argparse.Namespace) -> int:
     return 0
 
 
+@command("db-roles", "Set passwords on the app_api / app_system login roles from the environment")
+def _db_roles(_args: argparse.Namespace) -> int:
+    import psycopg
+    from psycopg import sql
+
+    s = get_settings()
+    if s.database_url_admin is None:
+        print("DATABASE_URL_ADMIN is not set", file=sys.stderr)
+        return 2
+    passwords = {
+        "app_api": s.app_db_password.get_secret_value() if s.app_db_password else "",
+        "app_system": s.system_db_password.get_secret_value() if s.system_db_password else "",
+    }
+    if not all(len(p) >= 16 for p in passwords.values()):
+        print("APP_DB_PASSWORD and SYSTEM_DB_PASSWORD must be set (16+ chars)", file=sys.stderr)
+        return 2
+    with psycopg.connect(s.database_url_admin.get_secret_value(), autocommit=True) as conn:
+        for role, password in passwords.items():
+            conn.execute(
+                sql.SQL("alter role {} with password {}").format(
+                    sql.Identifier(role), sql.Literal(password)
+                )
+            )
+    print("passwords set for app_api, app_system")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m api.cli")
     sub = parser.add_subparsers(dest="command", required=True)
