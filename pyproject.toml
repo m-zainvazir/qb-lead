@@ -52,7 +52,7 @@ ban-relative-imports = "all"
 "apps/api/api/admin/**" = ["TID251"]
 "packages/core/core/db.py" = ["TID251"]
 "**/tests/**" = ["S105", "S106", "S311"]
-"tests/**" = ["S105", "S106", "S311", "TID251"]
+"tests/**" = ["S105", "S106", "S311", "S608", "TID251", "E402"]
 
 # ---------------------------------------------------------------- mypy
 [tool.mypy]
@@ -69,7 +69,7 @@ ignore_missing_imports = true
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
 testpaths = ["packages/core/tests", "apps/api/tests", "apps/worker/tests", "scripts"]
-pythonpath = ["scripts"]
+pythonpath = ["scripts", "."]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 addopts = "-ra --import-mode=importlib -m 'not db'"

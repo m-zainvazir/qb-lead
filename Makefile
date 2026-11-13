@@ -62,8 +62,13 @@ test: ## Fast unit tests (no database)
 	uv run pytest -q -m "not db"
 
 .PHONY: test-db
-test-db: ## Database and isolation tests against the LOCAL stack
-	LEADGEN_USE_REAL_ENV=1 uv run pytest -q -m db packages apps $(wildcard tests)
+test-db: ## Database tests against the LOCAL stack, then the isolation suite
+	LEADGEN_USE_REAL_ENV=1 uv run pytest -q -m db packages apps
+	$(MAKE) test-isolation
+
+.PHONY: test-isolation
+test-isolation: ## Tenant isolation suite (seeds Agency A/B on the LOCAL stack)
+	uv run pytest tests/isolation -q
 
 .PHONY: migrate
 migrate: ## Apply new local migrations (no reset, keeps data)
