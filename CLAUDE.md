@@ -29,6 +29,14 @@ A multi-tenant product that finds warm and hot leads for freelancers and agencie
 - Settings live in the database or the environment, never in code.
 - All times are stored in UTC.
 
+## Local development
+
+- `make help` lists targets: `dev`, `up`, `stop`, `test`, `lint`, `migrate`, `db-reset` (local only), `db-roles`, `audit`.
+- Python is a uv workspace: shared code in `packages/core` (settings, logging, `db.py`), `apps/api` (package `api`), `apps/worker` (package `worker`). Run tools with `uv run`.
+- DB access design: `docs/decisions/0001-db-access.md`. `user_db` and `system_db` live in `packages/core/core/db.py`.
+- psql: `docker exec -i supabase_db_leadgen psql -U postgres -d postgres` (there is no host psql).
+- Next.js in `apps/web` is version 16: read `apps/web/node_modules/next/dist/docs/` before using an API you are unsure of.
+
 ## How to work
 
 - Start each module in plan mode and produce a task list before writing code.
