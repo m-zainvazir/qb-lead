@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from api import errors
+from api.admin import routes as admin_routes
 from api.middleware import RequestIdMiddleware
 from api.routes import invitations, me, team, tenants
 from core import db
@@ -52,5 +53,6 @@ def create_app(*, with_db: bool = True) -> FastAPI:
     app.include_router(tenants.router)
     app.include_router(team.router)
     app.include_router(invitations.router)
+    app.include_router(admin_routes.router)
 
     return app
