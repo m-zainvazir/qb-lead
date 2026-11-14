@@ -1,4 +1,4 @@
-# 2 · Service catalogue and onboarding profile
+# 2 Â· Service catalogue and onboarding profile
 
 ## Goal
 
@@ -103,7 +103,7 @@ Plugins: `supabase`, `context7` (pgvector and Supabase Storage), `frontend-desig
 
 ## Done when
 
-- [ ] Two different questionnaires produce visibly different search terms and fingerprints
-- [ ] A new service, market, signal or question can be added as data, with no code change
-- [ ] Profile edits recompile in the background and are versioned
-- [ ] Storage and catalogue terminal tests pass
+- [x] Two different questionnaires produce visibly different search terms and fingerprints (2026-11-14: Agency A voice-agent freelancer vs Agency B web-development agency; different queries, exclusions, fingerprints and preview)
+- [x] A new service, market, signal or question can be added as data, with no code change (admin API and screen; each shows up in onboarding at once and disappears when switched off)
+- [x] Profile edits recompile in the background and are versioned (one version per save; worker job plus a 30 s sweep)
+- [x] Storage and catalogue terminal tests pass (`bash scripts/m2_terminal_tests.sh`; the plan's A-into-B upload has no content type and is refused by the bucket's type list, so a second call with a PDF type proves the folder policy)

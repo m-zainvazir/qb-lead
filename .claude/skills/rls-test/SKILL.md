@@ -14,7 +14,7 @@ non-local Supabase URLs, and so must you.
 2. Build the web app once if terminal test 9 should run: `cd apps/web && npm run build`.
 3. Seed fresh users and tokens (tokens last 15 minutes): `make seed-test`.
 4. Run the terminal tests and show the output **raw**, unedited:
-   `bash scripts/rls_terminal_tests.sh`
+   `bash scripts/rls_terminal_tests.sh` (module 1) and `bash scripts/m2_terminal_tests.sh` (module 2: catalogue, profiles, storage)
 5. Compare each result with the expectation printed above it. Report a table:
    test | expected | got | pass/fail. Do not summarise away a failure.
 
