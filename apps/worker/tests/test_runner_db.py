@@ -39,3 +39,26 @@ def test_cap_stops_the_run_cleanly() -> None:
 
 def test_disabled_source_is_skipped_by_the_schedule() -> None:
     assert run_source("fake", "schedule")["status"] == "skipped"  # fake is disabled
+
+
+def test_a_failing_source_is_recorded_and_others_still_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    from worker.ingest import runner
+
+    class Broken:
+        name = "fake"
+        query_family = "reddit"
+
+        def fetch(self, queries, since, ctx):  # type: ignore[no-untyped-def]
+            raise ConnectionError("network is down")
+            yield  # pragma: no cover
+
+    real = runner.get_connector
+    monkeypatch.setattr(
+        runner, "get_connector", lambda name: Broken() if name == "fake" else real(name)
+    )
+    with _admin() as conn:
+        conn.execute("update public.sources set monthly_cap_usd = 100 where key = 'fake'")
+    failed = run_source("fake", "cli")
+    assert failed["status"] == "failed" and "network is down" in failed["error"]
+    monkeypatch.setattr(runner, "get_connector", real)
+    assert run_source("fake", "cli")["status"] == "succeeded"  # the next run recovers

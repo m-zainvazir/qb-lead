@@ -1,4 +1,4 @@
-# 3 · Sources and ingestion
+# 3 Â· Sources and ingestion
 
 ## Goal
 
@@ -118,8 +118,8 @@ Skills: your `connector-new`, Trail of Bits `sharp-edges` on the guarded fetcher
 
 ## Done when
 
-- [ ] Hacker News, web search, webhook and email all write to `raw_items`
-- [ ] Running a source twice creates no duplicates
-- [ ] Every paid call appears in `usage_events` with a cost
-- [ ] A capped or failing source stops cleanly without affecting the others
-- [ ] The source register lists each source with its risk level
+- [ ] Hacker News, web search, webhook and email all write to `raw_items`. Hacker News, webhook and email are verified live (2026-11-14). Web search (Exa/Tavily/Serper) is built and tested on saved responses but cannot run until an API key is set.
+- [x] Running a source twice creates no duplicates (unique on source + external id; `test_same_run_twice_adds_nothing_the_second_time`; live Hacker News second run adds only genuinely new posts)
+- [x] Every paid call appears in `usage_events` with a cost (one row per outside call, linked to its run; 32 calls per Hacker News run)
+- [x] A capped or failing source stops cleanly without affecting the others (`capped` and `failed` runs tested; the next run recovers; each source runs in its own task)
+- [x] The source register lists each source with its risk level (`docs/sources.md`)
