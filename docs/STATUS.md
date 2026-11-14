@@ -13,6 +13,33 @@ Last update: 2026-11-14.
 | 3 Sources and ingestion | **In progress** | Key-free sources first; web search waits for a key (question 4) |
 | 4Ã¢â‚¬â€œ12 | Not started | Built in order |
 
+## What to expect at this phase (end of module 3)
+
+This is the "collection" half of the product. It is not yet a lead tool: nothing is scored, matched or shown as a lead until modules 4–6.
+
+**Works now (try it):**
+- **Accounts and companies.** Sign up (confirmation email at http://127.0.0.1:54324), create a company, invite teammates, change roles, switch companies, reset your password. Every company's data is walled off from every other company.
+- **Platform admin.** After enrolling an authenticator at `/admin/mfa`, an admin sees all companies, opens one (logged in the audit log), and edits the shared catalogue (`/admin/catalogue`).
+- **Onboarding and profile.** A 6-step questionnaire (resumes where you left off) turns your answers into a profile. Within about 30 seconds the profile page shows "Here is what we will look for": your services, the phrases we search, markets, kinds of posts, exclusions, and which example posts would reach you or be skipped, with the reason.
+- **Portfolio.** Upload a PDF, Word or text case study; a summary appears after a few seconds. Fake or oversized files are refused.
+- **Collection.** Every 30 minutes the worker searches Hacker News (including the monthly hiring and freelancer threads) with the combined phrases of all companies and stores the raw posts. A second run only adds new posts. Every outside call is counted in `usage_events`, and a source stops cleanly at its monthly cap.
+
+**Not there yet (by design):**
+- No lead inbox, scores, alerts or proposals: modules 4–7.
+- Raw posts are broad on purpose; module 4 decides which are real leads.
+- Web search (Exa, Tavily, Serper) is built but off until you add a key; inbound email needs a provider (question 5).
+- No billing, staging or production yet.
+
+**How to start it:** `npx supabase start`, then `make up`, then `cd apps/web && npm run dev`, and open http://localhost:3000.
+
+## Practical tests for you, in order
+
+1. **Module 1 (accounts):** manual tests 1–8 in `docs/plans/module-01-tenants-and-isolation.md`.
+2. **Module 2 (onboarding):** manual tests 1–7 in `docs/plans/module-02-catalogue-and-onboarding.md`, then review the search phrases on the Profile page.
+3. **Module 3 (sources):** manual tests in `docs/plans/module-03-sources-and-ingestion.md` once the temporary sources page lands (task M3-9). Until then: `uv run python -m worker.cli run-source hackernews` twice; the second run reports `"new": 0`.
+4. **Automatic checks (no browser):** `make seed-test`, then `bash scripts/rls_terminal_tests.sh` and `bash scripts/m2_terminal_tests.sh`. Every line should match the "expect" above it.
+5. **Security scans** (stopped earlier for low memory): `make audit`, and the semgrep command in "Open for you" below.
+
 ## Module 3 task list
 
 - [x] M3-1 Tables: `sources`, `tenant_sources`, `source_runs`, `raw_items` (pooled or private), `inbound_endpoints`, `fetch_guard_events`; `usage_events` gains run, source and `ts`; `metered_call()` refuses past a monthly cap
