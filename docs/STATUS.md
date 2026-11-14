@@ -10,8 +10,21 @@ Last update: 2026-11-14.
 | 0 Foundation (local slice) | Done locally | Staging, branch protection and the first CI run are deferred (no remote yet) |
 | 1 Tenants, logins and isolation | Done, except your browser checks | All 11 terminal tests pass; security review fixed (`docs/reviews/2026-11-13-module-01.md`) |
 | 2 Catalogue and onboarding | Done, except your browser checks and the search-term review | All terminal tests pass; "Done when" ticked with evidence |
-| 3 Sources and ingestion | **Next** | Waiting on question 4 below for anything that needs a paid key |
-| 4â€“12 | Not started | Built in order |
+| 3 Sources and ingestion | **In progress** | Key-free sources first; web search waits for a key (question 4) |
+| 4Ã¢â‚¬â€œ12 | Not started | Built in order |
+
+## Module 3 task list
+
+- [x] M3-1 Tables: `sources`, `tenant_sources`, `source_runs`, `raw_items` (pooled or private), `inbound_endpoints`, `fetch_guard_events`; `usage_events` gains run, source and `ts`; `metered_call()` refuses past a monthly cap
+- [ ] M3-2 Connector interface and a fake connector reading saved sample data (tests)
+- [ ] M3-3 Hacker News connector (Algolia search, plus the monthly "Who is hiring" and freelancer threads)
+- [ ] M3-4 Inbound webhook: per-tenant secret (shown once, rotatable), size limit, schema, rate limit per secret
+- [ ] M3-5 Inbound email (Mailgun signature check), HTML to text, attachments dropped, Upwork alert parser and a general parser
+- [ ] M3-6 Guarded fetcher for links from outside content, with a blocked-attempts log and `fetch-guard-report`
+- [ ] M3-7 Web search connector (Exa / Tavily / Serper behind one interface, off until a key exists) and the query planner
+- [ ] M3-8 Scheduler from `sources`, run locks, retries with backoff, failure and cap recording; `run-source` command
+- [ ] M3-9 Temporary sources page (admin) and an inbound page per company (webhook "Send test", private items as plain text)
+- [ ] M3-10 `docs/sources.md` register, `connector-new` skill, terminal tests, Done-when
 
 ## Module 2 task list (in place of a plan-mode approval, since the loop runs unattended)
 
@@ -30,35 +43,36 @@ Last update: 2026-11-14.
 1. **Embeddings provider.** No API key is configured, so I used a local, free model (fastembed `BAAI/bge-small-en-v1.5`, 384 dimensions) behind an interface (`docs/decisions/0002-embeddings.md`). Do you want OpenAI (`text-embedding-3-small`), Voyage or another provider later? Switching is a setting plus `python -m worker.cli re-embed`.
 2. **Git identity.** Commits use "Muhammad Zain" and your work email (repo-local setting). Change it if needed.
 3. **GitHub remote and staging host.** Needed for CI and module 0's staging step. Tell me the repo URL and host (Railway or Hetzner + Coolify) when ready.
+5. **Inbound email provider.** I chose Mailgun inbound routes because Mailgun signs each delivery (HMAC). Postmark and SendGrid inbound do not sign (only basic auth). Is Mailgun fine, and which domain should receive mail (for example `in.yourdomain.com`)?
 4. **Module 3 sources and keys.** Which sources should come first, and which accounts or keys exist? Without keys I will start with sources that need none: Reddit's public JSON listings, Hacker News (Algolia API), RSS feeds, and inbound email/webhook. Paid search (Google CSE, SerpAPI, Firecrawl) and LinkedIn will wait for your go-ahead and keys.
 
 ## Open for you (tests and manual steps)
 
 ### Module 2
-- [ ] Manual tests 1â€“7 in a browser (`docs/plans/module-02-catalogue-and-onboarding.md`). Pages: `/t/<company>/onboarding`, `/profile`, `/portfolio`, and `/admin/catalogue` (admin, after `/admin/mfa`).
+- [ ] Manual tests 1Ã¢â‚¬â€œ7 in a browser (`docs/plans/module-02-catalogue-and-onboarding.md`). Pages: `/t/<company>/onboarding`, `/profile`, `/portfolio`, and `/admin/catalogue` (admin, after `/admin/mfa`).
 - [ ] Build step 8: read the generated search terms for the first five real profiles and tell me what to change. They are on the Profile page under "Phrases we search for", and in `profile_compilations.search_terms`.
 - [ ] Note: my smoke tests left some catalogue rows switched off (not deleted) in your local database: a "Chatbots (smoke test)" service, the market `NZ`, the signal `smoke_signal` and the question `smoke_question`. Your manual test 7 can still add "Chatbots" with the slug `chatbots`. To use NZ for real, switch it on and rename it in the admin catalogue (or `make db-reset` for a clean local database).
 - [ ] The first embedding run downloads the model (about 130 MB) into the `models` Docker volume.
 
 ### Module 1
-- [ ] Manual tests 1â€“8 in a browser (`docs/plans/module-01-tenants-and-isolation.md`). Emails arrive at http://127.0.0.1:54324. Start with `make dev`, or Supabase + `make up` + `cd apps/web && npm run dev`.
+- [ ] Manual tests 1Ã¢â‚¬â€œ8 in a browser (`docs/plans/module-01-tenants-and-isolation.md`). Emails arrive at http://127.0.0.1:54324. Start with `make dev`, or Supabase + `make up` + `cd apps/web && npm run dev`.
 - [ ] The first platform admin on a real environment: enrol an authenticator at `/admin/mfa` first, then run `supabase/snippets/create_platform_admin.sql` (it refuses users without a verified authenticator).
 - [ ] Note: a page for another company shows "Not found" but with HTTP status 200, because the page streams. No data from the other company is in the response.
 
 ### Module 0
-- [ ] Install the plugins listed in `docs/plans/00-overview.md` with `/plugin install â€¦`
+- [ ] Install the plugins listed in `docs/plans/00-overview.md` with `/plugin install Ã¢â‚¬Â¦`
 - [ ] Open a new terminal so `make` and `gitleaks` (installed with winget) are on PATH
 - [ ] Clone into a fresh folder, run `make install && make env && make dev`, and check it works in under 30 minutes
 - [ ] Add a GitHub remote, push, and check the CI run (the `database` job runs the isolation suite)
 
 ## Decisions made without you (easy to change)
 
-- 2026-11-14: Preview threshold: a sample post "would reach you" at cosine similarity â‰¥ 0.70 with one of your service fingerprints (tuned on the seeded samples). The constant `PREVIEW_MATCH` is in `apps/worker/worker/compiler.py`.
+- 2026-11-14: Preview threshold: a sample post "would reach you" at cosine similarity Ã¢â€°Â¥ 0.70 with one of your service fingerprints (tuned on the seeded samples). The constant `PREVIEW_MATCH` is in `apps/worker/worker/compiler.py`.
 - 2026-11-14: Portfolio summaries are a plain extract (the first sentences). An AI summary can replace it in module 7.
 - 2026-11-14: `metered_call()` and the `usage_events` table were built in module 2 rather than module 3, because embedding costs had to be recorded now.
 - 2026-11-14: Module 2's terminal tests call the API without `X-Tenant-Id`. The API now uses your company when you belong to exactly one, and still requires the header otherwise.
 - 2026-11-14: Embeddings default to a local model (see question 1).
-- 2026-11-13: Company pages live under `/t/<companyId>/â€¦`; switching company goes through `/switch/<id>`.
+- 2026-11-13: Company pages live under `/t/<companyId>/Ã¢â‚¬Â¦`; switching company goes through `/switch/<id>`.
 - 2026-11-13: The DB access design is in `docs/decisions/0001-db-access.md`.
 
 ## Known gaps carried forward

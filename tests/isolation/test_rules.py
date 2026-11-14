@@ -289,3 +289,25 @@ def test_company_name_rejects_control_characters(conn: Conn, world: World) -> No
             "update public.tenants set name = %s where id = %s",
             ("Evil\r\nBcc: victim@example.com", world.tenant_a),
         )
+
+
+def test_customers_never_read_the_shared_pool(conn: Conn, world: World) -> None:
+    as_owner(conn)
+    conn.execute(
+        "insert into public.raw_items (source_key, external_id, visibility, title)"
+        " values ('hackernews', %s, 'pooled', 'Pooled post')",
+        (f"iso-pool-{secrets.token_hex(4)}",),
+    )
+    for user in (world.owner_a, world.member_a, world.owner_b):
+        act_as(conn, world.claims(user))
+        rows = conn.execute("select 1 from public.raw_items where visibility = 'pooled'").fetchall()
+        assert rows == []
+
+
+def test_red_source_cannot_be_enabled_without_override(conn: Conn) -> None:
+    as_owner(conn)
+    with expect_sqlstate(conn, "23514"):
+        conn.execute(
+            "insert into public.sources (key, name, connector, risk, enabled)"
+            " values ('iso_red', 'Risky', 'fake', 'red', true)"
+        )

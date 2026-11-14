@@ -188,6 +188,50 @@ def usage_events(conn: Conn, tenant_id: str, users: dict[str, str]) -> dict[str,
     return {"tenant_id": tenant_id, "provider": "forged", "operation": "x", "cost_usd": 0}
 
 
+# --- module 3 -------------------------------------------------------------------------
+def raw_items(conn: Conn, tenant_id: str, users: dict[str, str]) -> dict[str, Any]:
+    conn.execute(
+        "insert into public.raw_items (source_key, external_id, visibility, tenant_id, title, body)"
+        " values ('webhook', %s, 'private', %s, 'Private lead', 'body')",
+        (f"iso-{secrets.token_hex(6)}", tenant_id),
+    )
+    conn.execute(  # a pooled row too: no customer may ever read it
+        "insert into public.raw_items (source_key, external_id, visibility, title)"
+        " values ('hackernews', %s, 'pooled', 'Pooled post')",
+        (f"iso-{secrets.token_hex(6)}",),
+    )
+    return {
+        "source_key": "webhook",
+        "external_id": f"forged-{secrets.token_hex(4)}",
+        "visibility": "private",
+        "tenant_id": tenant_id,
+        "title": "Forged",
+    }
+
+
+def tenant_sources(conn: Conn, tenant_id: str, users: dict[str, str]) -> dict[str, Any]:
+    conn.execute(
+        "insert into public.tenant_sources (tenant_id, source_key) values (%s, 'hackernews')"
+        " on conflict do nothing",
+        (tenant_id,),
+    )
+    return {"tenant_id": tenant_id, "source_key": "web_exa"}
+
+
+def inbound_endpoints(conn: Conn, tenant_id: str, users: dict[str, str]) -> dict[str, Any]:
+    conn.execute(
+        "insert into public.inbound_endpoints (tenant_id, kind, token_hash, token_hint)"
+        " values (%s, 'webhook', %s, 'abcd')",
+        (tenant_id, _token_hash()),
+    )
+    return {
+        "tenant_id": tenant_id,
+        "kind": "webhook",
+        "token_hash": _token_hash(),
+        "token_hint": "abcd",
+    }
+
+
 FACTORIES: dict[str, Factory] = {
     "tenants": tenants,
     "memberships": memberships,
@@ -203,4 +247,7 @@ FACTORIES: dict[str, Factory] = {
     "service_fingerprints": service_fingerprints,
     "portfolio_items": portfolio_items,
     "usage_events": usage_events,
+    "raw_items": raw_items,
+    "tenant_sources": tenant_sources,
+    "inbound_endpoints": inbound_endpoints,
 }
