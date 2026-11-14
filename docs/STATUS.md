@@ -50,7 +50,7 @@ This is the "collection" half of the product. It is not yet a lead tool: nothing
 - [x] M3-6 Guarded fetcher for links from outside content, with a blocked-attempts log and `fetch-guard-report`
 - [x] M3-7 Web search connector (Exa / Tavily / Serper behind one interface, off until a key exists) and the query planner (code and parsing tests; not run live: no keys)
 - [x] M3-8 Scheduler from `sources`, run locks, retries with backoff, failure and cap recording; `run-source` command
-- [ ] M3-9 Temporary sources page (admin) and an inbound page per company (webhook "Send test", private items as plain text)
+- [x] M3-9 Temporary sources page (admin) and an inbound page per company (webhook "Send test", private items as plain text)
 - [ ] M3-10 `docs/sources.md` register, `connector-new` skill, terminal tests, Done-when
 
 ## Module 2 task list (in place of a plan-mode approval, since the loop runs unattended)

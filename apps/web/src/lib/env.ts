@@ -18,6 +18,10 @@ export const env = {
   get apiUrl() {
     return required("API_URL");
   },
+  // The API address customers' websites post to (defaults to API_URL locally).
+  get publicApiUrl() {
+    return process.env.PUBLIC_API_URL || required("API_URL");
+  },
   get webBaseUrl() {
     return required("WEB_BASE_URL");
   },

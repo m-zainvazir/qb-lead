@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from api import errors
 from api.admin import catalogue as admin_catalogue
 from api.admin import routes as admin_routes
+from api.admin import sources as admin_sources
 from api.middleware import BodySizeLimitMiddleware, RequestIdMiddleware
 from api.routes import (
     inbound,
@@ -73,5 +74,6 @@ def create_app(*, with_db: bool = True) -> FastAPI:
     app.include_router(ingest.router)
     app.include_router(admin_routes.router)
     app.include_router(admin_catalogue.router)
+    app.include_router(admin_sources.router)
 
     return app

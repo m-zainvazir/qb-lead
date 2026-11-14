@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterator
 
 import psycopg
 import pytest
@@ -14,7 +15,7 @@ pytestmark = pytest.mark.db
 
 
 @pytest.fixture
-def capped_source() -> str:
+def capped_source() -> Iterator[str]:
     key = f"t_{uuid.uuid4().hex[:10]}"
     url = get_settings().database_url_admin
     assert url is not None
@@ -24,7 +25,10 @@ def capped_source() -> str:
             " values (%s, 'Test', 'fake', 'green', 0.01)",
             (key,),
         )
-    return key
+    yield key
+    with psycopg.connect(url.get_secret_value(), autocommit=True) as conn:
+        conn.execute("delete from public.usage_events where source_key = %s", (key,))
+        conn.execute("delete from public.sources where key = %s", (key,))
 
 
 def test_calls_are_recorded_and_the_cap_stops_the_next_one(capped_source: str) -> None:

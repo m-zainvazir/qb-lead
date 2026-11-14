@@ -41,6 +41,9 @@ async function Nav({ params }: Pick<LayoutProps<"/t/[tenantId]">, "params">) {
       <Link href={`/t/${company.id}/portfolio`} className="underline">
         Portfolio
       </Link>
+      <Link href={`/t/${company.id}/inbound`} className="underline">
+        Inbound
+      </Link>
       {company.role !== "member" && (
         <Link href={`/t/${company.id}/team`} className="underline">
           Team
