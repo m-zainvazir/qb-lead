@@ -11,11 +11,11 @@ Last update: 2026-11-14.
 | 1 Tenants, logins and isolation | Done, except your browser checks | All 11 terminal tests pass; security review fixed (`docs/reviews/2026-11-13-module-01.md`) |
 | 2 Catalogue and onboarding | Done, except your browser checks and the search-term review | All terminal tests pass; "Done when" ticked with evidence |
 | 3 Sources and ingestion | **Done**, except web search (needs a key) and your browser checks | All terminal tests pass; "Done when" ticked with evidence |
-| 4ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ12 | Not started | Built in order |
+| 4–12 | Not started | Built in order |
 
 ## What to expect at this phase (end of module 3, finished 2026-11-14)
 
-This is the "collection" half of the product. It is not yet a lead tool: nothing is scored, matched or shown as a lead until modules 4Ã¢â‚¬â€œ6.
+This is the "collection" half of the product. It is not yet a lead tool: nothing is scored, matched or shown as a lead until modules 4–6.
 
 **Works now (try it):**
 - **Accounts and companies.** Sign up (confirmation email at http://127.0.0.1:54324), create a company, invite teammates, change roles, switch companies, reset your password. Every company's data is walled off from every other company.
@@ -27,7 +27,7 @@ This is the "collection" half of the product. It is not yet a lead tool: nothing
 - **Admin sources page** (`/admin/sources`): every source with its risk level, spend vs cap, projected monthly cost and share of new items; Run now, switch on or off, set a cap; recent runs and raw items.
 
 **Not there yet (by design):**
-- No lead inbox, scores, alerts or proposals: modules 4Ã¢â‚¬â€œ7.
+- No lead inbox, scores, alerts or proposals: modules 4–7.
 - Raw posts are broad on purpose; module 4 decides which are real leads.
 - Web search (Exa, Tavily, Serper) is built but off until you add a key.
 - Inbound email works locally with a signed test (`scripts/send_test_email.py`); real emails need a Mailgun inbound route and domain (question 5).
@@ -37,9 +37,9 @@ This is the "collection" half of the product. It is not yet a lead tool: nothing
 
 ## Practical tests for you, in order
 
-1. **Module 1 (accounts):** manual tests 1Ã¢â‚¬â€œ8 in `docs/plans/module-01-tenants-and-isolation.md`.
-2. **Module 2 (onboarding):** manual tests 1Ã¢â‚¬â€œ7 in `docs/plans/module-02-catalogue-and-onboarding.md`, then review the search phrases on the Profile page.
-3. **Module 3 (sources):** manual tests 1â€“7 in `docs/plans/module-03-sources-and-ingestion.md`, using `/admin/sources` (as platform admin after `/admin/mfa`) and your company's Inbound page. For test 4 without Mailgun, run `uv run python scripts/send_test_email.py <your inbound address> --upwork`. Then open the Inbound page after the terminal test's `<script>` item and check that it shows as text with no pop-up.
+1. **Module 1 (accounts):** manual tests 1–8 in `docs/plans/module-01-tenants-and-isolation.md`.
+2. **Module 2 (onboarding):** manual tests 1–7 in `docs/plans/module-02-catalogue-and-onboarding.md`, then review the search phrases on the Profile page.
+3. **Module 3 (sources):** manual tests 1–7 in `docs/plans/module-03-sources-and-ingestion.md`, using `/admin/sources` (as platform admin after `/admin/mfa`) and your company's Inbound page. For test 4 without Mailgun, run `uv run python scripts/send_test_email.py <your inbound address> --upwork`. Then open the Inbound page after the terminal test's `<script>` item and check that it shows as text with no pop-up.
 4. **Automatic checks (no browser):** `make seed-test`, then `bash scripts/rls_terminal_tests.sh`, `bash scripts/m2_terminal_tests.sh` and `bash scripts/m3_terminal_tests.sh` (the last one waits 61 seconds after the flood test). Every line should match the "expect" above it.
 5. **Security scans** (stopped earlier for low memory): `make audit`, and the semgrep command in "Open for you" below.
 
@@ -73,24 +73,24 @@ This is the "collection" half of the product. It is not yet a lead tool: nothing
 1. **Embeddings provider.** No API key is configured, so I used a local, free model (fastembed `BAAI/bge-small-en-v1.5`, 384 dimensions) behind an interface (`docs/decisions/0002-embeddings.md`). Do you want OpenAI (`text-embedding-3-small`), Voyage or another provider later? Switching is a setting plus `python -m worker.cli re-embed`.
 2. **Git identity.** Commits use "Muhammad Zain" and your work email (repo-local setting). Change it if needed.
 3. **GitHub remote and staging host.** Needed for CI and module 0's staging step. Tell me the repo URL and host (Railway or Hetzner + Coolify) when ready.
-5. **Inbound email provider.** I chose Mailgun inbound routes because Mailgun signs each delivery (HMAC). Postmark and SendGrid inbound do not sign (only basic auth). Is Mailgun fine, and which domain should receive mail (for example `in.yourdomain.com`)?
 4. **Paid sources and keys.** Hacker News, the webhook and email need no key and are live. Web search is ready for Exa, Tavily or Serper: which one, and with what monthly cap? (The defaults are $20, $20 and $10, set in `/admin/sources`.) Later sources (X, Apify, job boards) need your go-ahead. LinkedIn is red-risk (its terms forbid automated access) and will not be built without a written decision.
+5. **Inbound email provider.** I chose Mailgun inbound routes because Mailgun signs each delivery (HMAC). Postmark and SendGrid inbound do not sign (only basic auth). Is Mailgun fine, and which domain should receive mail (for example `in.yourdomain.com`)?
 
 ## Open for you (tests and manual steps)
 
 ### Module 2
-- [ ] Manual tests 1ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ7 in a browser (`docs/plans/module-02-catalogue-and-onboarding.md`). Pages: `/t/<company>/onboarding`, `/profile`, `/portfolio`, and `/admin/catalogue` (admin, after `/admin/mfa`).
+- [ ] Manual tests 1–7 in a browser (`docs/plans/module-02-catalogue-and-onboarding.md`). Pages: `/t/<company>/onboarding`, `/profile`, `/portfolio`, and `/admin/catalogue` (admin, after `/admin/mfa`).
 - [ ] Build step 8: read the generated search terms for the first five real profiles and tell me what to change. They are on the Profile page under "Phrases we search for", and in `profile_compilations.search_terms`.
 - [ ] Note: my smoke tests left some catalogue rows switched off (not deleted) in your local database: a "Chatbots (smoke test)" service, the market `NZ`, the signal `smoke_signal` and the question `smoke_question`. Your manual test 7 can still add "Chatbots" with the slug `chatbots`. To use NZ for real, switch it on and rename it in the admin catalogue (or `make db-reset` for a clean local database).
 - [ ] The first embedding run downloads the model (about 130 MB) into the `models` Docker volume.
 
 ### Module 1
-- [ ] Manual tests 1ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ8 in a browser (`docs/plans/module-01-tenants-and-isolation.md`). Emails arrive at http://127.0.0.1:54324. Start with `make dev`, or Supabase + `make up` + `cd apps/web && npm run dev`.
+- [ ] Manual tests 1–8 in a browser (`docs/plans/module-01-tenants-and-isolation.md`). Emails arrive at http://127.0.0.1:54324. Start with `make dev`, or Supabase + `make up` + `cd apps/web && npm run dev`.
 - [ ] The first platform admin on a real environment: enrol an authenticator at `/admin/mfa` first, then run `supabase/snippets/create_platform_admin.sql` (it refuses users without a verified authenticator).
 - [ ] Note: a page for another company shows "Not found" but with HTTP status 200, because the page streams. No data from the other company is in the response.
 
 ### Module 0
-- [ ] Install the plugins listed in `docs/plans/00-overview.md` with `/plugin install ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦`
+- [ ] Install the plugins listed in `docs/plans/00-overview.md` with `/plugin install …`
 - [ ] Open a new terminal so `make` and `gitleaks` (installed with winget) are on PATH
 - [ ] Clone into a fresh folder, run `make install && make env && make dev`, and check it works in under 30 minutes
 - [ ] Add a GitHub remote, push, and check the CI run (the `database` job runs the isolation suite)
@@ -101,12 +101,12 @@ This is the "collection" half of the product. It is not yet a lead tool: nothing
 - 2026-11-14: Webhook limit is 60 requests per minute per address (`WEBHOOK_RATE_PER_MINUTE`).
 - 2026-11-14: Links to upwork.com, linkedin.com, facebook.com, instagram.com and x.com are kept but never fetched (site terms).
 - 2026-11-14: Raw payloads are kept for 90 days (`raw_items.expires_at`). The deletion job comes with module 10's reliability work.
-- 2026-11-14: Preview threshold: a sample post "would reach you" at cosine similarity ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¥ 0.70 with one of your service fingerprints (tuned on the seeded samples). The constant `PREVIEW_MATCH` is in `apps/worker/worker/compiler.py`.
+- 2026-11-14: Preview threshold: a sample post "would reach you" at cosine similarity ≥ 0.70 with one of your service fingerprints (tuned on the seeded samples). The constant `PREVIEW_MATCH` is in `apps/worker/worker/compiler.py`.
 - 2026-11-14: Portfolio summaries are a plain extract (the first sentences). An AI summary can replace it in module 7.
 - 2026-11-14: `metered_call()` and the `usage_events` table were built in module 2 rather than module 3, because embedding costs had to be recorded now.
 - 2026-11-14: Module 2's terminal tests call the API without `X-Tenant-Id`. The API now uses your company when you belong to exactly one, and still requires the header otherwise.
 - 2026-11-14: Embeddings default to a local model (see question 1).
-- 2026-11-13: Company pages live under `/t/<companyId>/ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦`; switching company goes through `/switch/<id>`.
+- 2026-11-13: Company pages live under `/t/<companyId>/…`; switching company goes through `/switch/<id>`.
 - 2026-11-13: The DB access design is in `docs/decisions/0001-db-access.md`.
 
 ## Known gaps carried forward
