@@ -60,3 +60,29 @@ def process_portfolio_item(item_id: str) -> str:
     from worker import portfolio
 
     return portfolio.process_item(UUID(item_id))
+
+
+@app.task(  # type: ignore[untyped-decorator]
+    name="worker.tasks.run_source",
+    autoretry_for=(OSError,),
+    retry_backoff=60,
+    retry_backoff_max=900,
+    max_retries=3,
+    soft_time_limit=600,
+    time_limit=720,
+)
+def run_source(source_key: str, trigger: str = "schedule") -> dict[str, object]:
+    from worker.ingest.runner import run_source as run
+
+    return run(source_key, trigger)
+
+
+@app.task(name="worker.tasks.schedule_sources")  # type: ignore[untyped-decorator]
+def schedule_sources() -> list[str]:
+    """Every minute: queue each enabled pull source whose schedule is due."""
+    from worker.ingest.runner import due_sources
+
+    due = due_sources()
+    for key in due:
+        run_source.delay(key, "schedule")
+    return due

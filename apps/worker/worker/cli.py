@@ -17,6 +17,8 @@ def main(argv: list[str] | None = None) -> int:
         "re-embed",
         help="Recompute every fingerprint and portfolio vector with the current embedding model",
     )
+    rs = sub.add_parser("run-source", help="Run one source now, in this process")
+    rs.add_argument("source_key")
     args = parser.parse_args(argv)
 
     if args.command == "heartbeat":
@@ -24,6 +26,12 @@ def main(argv: list[str] | None = None) -> int:
 
         result = heartbeat.delay()
         print(f"queued heartbeat task {result.id}")
+    elif args.command == "run-source":
+        import json
+
+        from worker.ingest.runner import run_source
+
+        print(json.dumps(run_source(args.source_key, "cli")))
     elif args.command == "compile":
         from worker import compiler
 

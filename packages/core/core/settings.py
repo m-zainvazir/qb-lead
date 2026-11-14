@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     embedding_cache_dir: str | None = None
     embedding_cost_per_1k_chars: float = Field(default=0.0, ge=0)
     storage_bucket: str = "portfolio"
+    exa_api_key: SecretStr | None = None
+    tavily_api_key: SecretStr | None = None
+    serper_api_key: SecretStr | None = None
     smtp_host: str = "127.0.0.1"
     smtp_port: int = 54325
     smtp_from: str = "no-reply@leadgen.local"

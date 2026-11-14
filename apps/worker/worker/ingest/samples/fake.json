@@ -1,0 +1,42 @@
+[
+  {
+    "id": "fake-1",
+    "title": "Need someone to answer our phones after hours",
+    "body": "Small HVAC company, we miss calls at night. Looking for an AI phone agent setup.",
+    "author": "hvac_owner",
+    "url": "https://example.com/post/1",
+    "posted_at": "2026-11-12T10:00:00+00:00"
+  },
+  {
+    "id": "fake-2",
+    "title": "Website redesign for a bakery",
+    "body": "Our site is from 2012 and not mobile friendly. Budget $2,500.",
+    "author": "bakery_kim",
+    "url": "https://example.com/post/2",
+    "posted_at": "2026-11-12T11:00:00+00:00"
+  },
+  {
+    "id": "fake-3",
+    "title": "Automate invoice entry into Xero",
+    "body": "We type 300 invoices a month by hand. Hiring a freelancer.",
+    "author": "ops_lead",
+    "url": "https://example.com/post/3",
+    "posted_at": "2026-11-12T12:00:00+00:00"
+  },
+  {
+    "id": "fake-4",
+    "title": "Looking for a wedding photographer",
+    "body": "Austin, next spring.",
+    "author": "bride2027",
+    "url": "https://example.com/post/4",
+    "posted_at": "2026-11-12T13:00:00+00:00"
+  },
+  {
+    "id": "fake-5",
+    "title": "<script>alert(1)</script> Need a voice bot",
+    "body": "<img src=x onerror=alert(2)> dental clinic needs booking calls handled",
+    "author": "tester",
+    "url": "https://example.com/post/5",
+    "posted_at": "2026-11-12T14:00:00+00:00"
+  }
+]
