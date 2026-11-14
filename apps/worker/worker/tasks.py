@@ -86,3 +86,11 @@ def schedule_sources() -> list[str]:
     for key in due:
         run_source.delay(key, "schedule")
     return due
+
+
+@app.task(name="worker.tasks.enrich_raw_item", soft_time_limit=60, time_limit=90)  # type: ignore[untyped-decorator]
+def enrich_raw_item(raw_item_id: str) -> str:
+    """Fetch the page a raw item links to, only through the guarded fetcher."""
+    from worker.ingest.enrich import enrich
+
+    return enrich(UUID(raw_item_id))

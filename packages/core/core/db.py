@@ -128,3 +128,15 @@ def system_db_sync() -> Iterator[psycopg.Connection[DictRow]]:
         with conn.transaction():
             conn.execute("set local role service_role")
             yield conn
+
+
+@asynccontextmanager
+async def ingest_db() -> AsyncIterator[Conn]:
+    """Public inbound routes (webhook, email): may only call private.ingest_* functions.
+
+    See docs/decisions/0003-inbound-path.md. The `ingest` role has no table privileges.
+    """
+    async with _pool("api").connection() as conn, conn.transaction():
+        await conn.execute("set local role ingest")
+        await _set_request_context(conn)
+        yield conn

@@ -45,9 +45,9 @@ This is the "collection" half of the product. It is not yet a lead tool: nothing
 - [x] M3-1 Tables: `sources`, `tenant_sources`, `source_runs`, `raw_items` (pooled or private), `inbound_endpoints`, `fetch_guard_events`; `usage_events` gains run, source and `ts`; `metered_call()` refuses past a monthly cap
 - [x] M3-2 Connector interface and a fake connector reading saved sample data (tests)
 - [x] M3-3 Hacker News connector (Algolia search, plus the monthly "Who is hiring" and freelancer threads)
-- [ ] M3-4 Inbound webhook: per-tenant secret (shown once, rotatable), size limit, schema, rate limit per secret
-- [ ] M3-5 Inbound email (Mailgun signature check), HTML to text, attachments dropped, Upwork alert parser and a general parser
-- [ ] M3-6 Guarded fetcher for links from outside content, with a blocked-attempts log and `fetch-guard-report`
+- [x] M3-4 Inbound webhook: per-tenant secret (shown once, rotatable), size limit, schema, rate limit per secret
+- [x] M3-5 Inbound email (Mailgun signature check), HTML to text, attachments dropped, Upwork alert parser and a general parser
+- [x] M3-6 Guarded fetcher for links from outside content, with a blocked-attempts log and `fetch-guard-report`
 - [x] M3-7 Web search connector (Exa / Tavily / Serper behind one interface, off until a key exists) and the query planner (code and parsing tests; not run live: no keys)
 - [x] M3-8 Scheduler from `sources`, run locks, retries with backoff, failure and cap recording; `run-source` command
 - [ ] M3-9 Temporary sources page (admin) and an inbound page per company (webhook "Send test", private items as plain text)

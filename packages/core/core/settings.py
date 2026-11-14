@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     exa_api_key: SecretStr | None = None
     tavily_api_key: SecretStr | None = None
     serper_api_key: SecretStr | None = None
+    mailgun_signing_key: SecretStr | None = None  # verifies inbound email deliveries
+    inbound_email_domain: str = "in.leadgen.local"
+    webhook_rate_per_minute: int = Field(default=60, ge=1, le=10000)
     smtp_host: str = "127.0.0.1"
     smtp_port: int = 54325
     smtp_from: str = "no-reply@leadgen.local"

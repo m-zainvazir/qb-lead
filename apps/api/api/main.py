@@ -11,14 +11,25 @@ from api import errors
 from api.admin import catalogue as admin_catalogue
 from api.admin import routes as admin_routes
 from api.middleware import BodySizeLimitMiddleware, RequestIdMiddleware
-from api.routes import invitations, me, onboarding, portfolio, profile, team, tenants
+from api.routes import (
+    inbound,
+    ingest,
+    invitations,
+    me,
+    onboarding,
+    portfolio,
+    profile,
+    team,
+    tenants,
+)
 from core import db
 from core.logging import configure_logging
 from core.settings import get_settings
 
 # The only routes reachable without a login. Anything else answers 401 without a valid
 # token (apps/api/tests/test_public_routes.py checks every route).
-PUBLIC_ROUTES: frozenset[str] = frozenset({"/healthz"})
+# /ingest/{token} needs a secret in the path; /inbound/email needs a provider signature.
+PUBLIC_ROUTES: frozenset[str] = frozenset({"/healthz", "/ingest/{token}", "/inbound/email"})
 
 
 @asynccontextmanager
@@ -58,6 +69,8 @@ def create_app(*, with_db: bool = True) -> FastAPI:
     app.include_router(onboarding.router)
     app.include_router(profile.router)
     app.include_router(portfolio.router)
+    app.include_router(inbound.router)
+    app.include_router(ingest.router)
     app.include_router(admin_routes.router)
     app.include_router(admin_catalogue.router)
 

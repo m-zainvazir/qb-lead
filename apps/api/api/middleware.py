@@ -58,7 +58,7 @@ class BodySizeLimitMiddleware:
         app: ASGIApp,
         max_body: int = 512 * 1024,
         max_upload: int = 11 * 1024 * 1024,
-        upload_paths: tuple[str, ...] = ("/portfolio",),
+        upload_paths: tuple[str, ...] = ("/portfolio", "/inbound/email"),
     ) -> None:
         self.app = app
         self.max_body = max_body

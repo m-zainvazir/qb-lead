@@ -29,7 +29,7 @@ def test_routes_were_discovered() -> None:
 
 
 def test_public_list_is_short() -> None:
-    assert {"/healthz"} == PUBLIC_ROUTES
+    assert {"/healthz", "/ingest/{token}", "/inbound/email"} == PUBLIC_ROUTES
 
 
 @pytest.mark.parametrize(("method", "path"), [r for r in ROUTES if r[1] not in PUBLIC_ROUTES])

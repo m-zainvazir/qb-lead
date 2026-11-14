@@ -17,6 +17,8 @@ def main(argv: list[str] | None = None) -> int:
         "re-embed",
         help="Recompute every fingerprint and portfolio vector with the current embedding model",
     )
+    fg = sub.add_parser("fetch-guard-report", help="Show the latest guarded-fetcher events")
+    fg.add_argument("--last", type=int, default=5)
     rs = sub.add_parser("run-source", help="Run one source now, in this process")
     rs.add_argument("source_key")
     args = parser.parse_args(argv)
@@ -26,6 +28,12 @@ def main(argv: list[str] | None = None) -> int:
 
         result = heartbeat.delay()
         print(f"queued heartbeat task {result.id}")
+    elif args.command == "fetch-guard-report":
+        from worker.ingest.enrich import report
+
+        for row in report(args.last):
+            when = f"{row['created_at']:%Y-%m-%d %H:%M:%S}"
+            print(f"{when}  {row['outcome']:<8} {row['url']}  {row['reason'] or ''}")
     elif args.command == "run-source":
         import json
 

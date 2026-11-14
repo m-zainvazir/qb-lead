@@ -52,7 +52,9 @@ httpcore==1.0.9
 httptools==0.9.0
     # via uvicorn
 httpx==0.28.1
-    # via api
+    # via
+    #   api
+    #   core
 idna==3.20
     # via
     #   anyio
@@ -96,7 +98,9 @@ python-multipart==0.0.33
 pyyaml==6.0.3
     # via uvicorn
 redis==8.1.0
-    # via kombu
+    # via
+    #   core
+    #   kombu
 six==1.17.0
     # via python-dateutil
 starlette==1.10.0

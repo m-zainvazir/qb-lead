@@ -98,6 +98,8 @@ def main() -> None:
         "SMTP_HOST": "127.0.0.1",
         "SMTP_PORT": "54325",
         "SMTP_FROM": "no-reply@leadgen.local",
+        "MAILGUN_SIGNING_KEY": existing.get("MAILGUN_SIGNING_KEY") or secrets.token_hex(24),
+        "INBOUND_EMAIL_DOMAIN": "in.leadgen.local",
     }
     web_env = {
         # Server-side only: none of these are NEXT_PUBLIC_, so none reach the browser bundle.

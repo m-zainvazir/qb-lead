@@ -156,6 +156,31 @@ def _seed_db(ids: dict[str, str]) -> None:
         )
 
 
+def _seed_inbound() -> tuple[str, str]:
+    """A fresh webhook token for Agency A (older seed tokens revoked) and a fixed email address."""
+    url = get_settings().database_url_admin
+    assert url is not None
+    token = secrets.token_urlsafe(32)
+    with psycopg.connect(url.get_secret_value()) as conn, conn.transaction():
+        conn.execute(
+            "update public.inbound_endpoints set revoked_at = now()"
+            " where tenant_id = %s and token_hint like 'seed%%' and revoked_at is null",
+            (TENANT_A,),
+        )
+        conn.execute(
+            "insert into public.inbound_endpoints (tenant_id, kind, token_hash, token_hint)"
+            " values (%s, 'webhook', encode(extensions.digest(%s, 'sha256'), 'hex'), 'seed')",
+            (TENANT_A, token),
+        )
+        conn.execute(
+            "insert into public.inbound_endpoints (tenant_id, kind, token_hash, token_hint,"
+            " email_local) values (%s, 'email', encode(extensions.digest(%s, 'sha256'), 'hex'),"
+            " 'seedml', 'in-seed-agency-a') on conflict (email_local) do nothing",
+            (TENANT_A, secrets.token_urlsafe(32)),
+        )
+    return token, f"in-seed-agency-a@{get_settings().inbound_email_domain}"
+
+
 def run() -> int:
     _local_only()
     s = get_settings()
@@ -166,6 +191,7 @@ def run() -> int:
     tokens = {key: auth.sign_in(email, password) for key, email in USERS.items()}
     tokens["admin"] = auth.aal2_token(ids["admin"], tokens["admin"])
 
+    token_a, email_a = _seed_inbound()
     assert s.database_url_admin is not None and s.supabase_service_role_key is not None
     values = {
         "API": "http://localhost:8000",
@@ -182,6 +208,8 @@ def run() -> int:
         "USER_OWNER_B": ids["owner_b"],
         "USER_ADMIN": ids["admin"],
         "TEST_PASSWORD": password,
+        "TOKEN_A": token_a,
+        "INBOUND_EMAIL_A": email_a,
         "DB_URL": s.database_url_admin.get_secret_value(),
         "APP_DB_URL": s.database_url_api.get_secret_value(),
         "SUPABASE_SERVICE_ROLE_KEY": s.supabase_service_role_key.get_secret_value(),
