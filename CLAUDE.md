@@ -31,10 +31,11 @@ A multi-tenant product that finds warm and hot leads for freelancers and agencie
 
 ## Local development
 
-- `make help` lists targets: `dev`, `up`, `stop`, `test`, `lint`, `migrate`, `db-reset` (local only), `db-roles`, `audit`.
+- There is no local Supabase or Postgres. The API, worker, web, Redis and Mailpit run locally; the database, login and storage are the hosted Supabase **staging** project in `.env` (ref listed in `.claude/staging-targets.txt`). Production is a separate project, never touched from here.
+- `make help` lists targets: `dev`, `up`, `stop`, `test`, `test-db`, `lint`, `push-staging` (apply migrations to staging), `db-roles`, `seed-test`, `psql`, `audit`.
 - Python is a uv workspace: shared code in `packages/core` (settings, logging, `db.py`), `apps/api` (package `api`), `apps/worker` (package `worker`). Run tools with `uv run`.
 - DB access design: `docs/decisions/0001-db-access.md`. `user_db` and `system_db` live in `packages/core/core/db.py`.
-- psql: `docker exec -i supabase_db_leadgen psql -U postgres -d postgres` (there is no host psql).
+- SQL: `make psql sql="select 1"` or `uv run python scripts/psql.py admin -c "..."` (a psql stand-in; it refuses anything but local or staging).
 - Next.js in `apps/web` is version 16: read `apps/web/node_modules/next/dist/docs/` before using an API you are unsure of.
 
 ## How to work

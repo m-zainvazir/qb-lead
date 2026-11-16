@@ -1,20 +1,21 @@
 ---
 name: rls-test
-description: Run the two-tenant isolation tests (Agency A vs Agency B) against the LOCAL stack and show the raw output - module 1's terminal tests 1-11 plus the isolation suite that discovers every table with tenant_id. Use when the user asks for rls-test, isolation tests, tenant isolation checks, or before declaring any module that adds a tenant table done.
+description: Run the two-tenant isolation tests (Agency A vs Agency B) against the STAGING project and show the raw output - module 1's terminal tests 1-11 plus the isolation suite that discovers every table with tenant_id. Use when the user asks for rls-test, isolation tests, tenant isolation checks, or before declaring any module that adds a tenant table done.
 ---
 
 # rls-test
 
-LOCAL STACK ONLY. Never point any of this at staging or production; the scripts refuse
-non-local Supabase URLs, and so must you.
+STAGING ONLY (or a local stack, if one ever exists again). Never production: the scripts
+refuse any project not listed in `.claude/staging-targets.txt` (core.targets), and so must you.
+Everything goes over the internet to the staging project, so the suite takes several minutes.
 
 ## Steps
 
-1. Make sure the stack is up: `make up` (and `npx supabase start` if `curl -s http://127.0.0.1:54321` fails). Apply new migrations with `make migrate`.
+1. Make sure the containers are up: `make up` (`curl -s localhost:8000/healthz`). Apply new migrations with `make push-staging`.
 2. Build the web app once if terminal test 9 should run: `cd apps/web && npm run build`.
 3. Seed fresh users and tokens (tokens last 15 minutes): `make seed-test`.
 4. Run the terminal tests and show the output **raw**, unedited:
-   `bash scripts/rls_terminal_tests.sh` (module 1) and `bash scripts/m2_terminal_tests.sh` (module 2: catalogue, profiles, storage)
+   `bash scripts/rls_terminal_tests.sh` (module 1), `bash scripts/m2_terminal_tests.sh` (module 2: catalogue, profiles, storage) and `bash scripts/m3_terminal_tests.sh` (module 3: inbound, guarded fetcher, sources)
 5. Compare each result with the expectation printed above it. Report a table:
    test | expected | got | pass/fail. Do not summarise away a failure.
 

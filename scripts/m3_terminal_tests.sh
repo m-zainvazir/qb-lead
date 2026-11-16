@@ -21,8 +21,11 @@ head -c 5000000 /dev/zero | curl -s -o /dev/null -w "%{http_code}\n" -X POST "$A
   -H "Content-Type: application/json" --data-binary @-
 
 echo "# Flood: expect 429 to appear after the limit"
-for i in $(seq 1 200); do curl -s -o /dev/null -w "%{http_code}\n" -X POST "$API/ingest/$TOKEN_A" \
-  -H "Content-Type: application/json" -d '{"title":"t","body":"b"}'; done | sort | uniq -c
+#   200 requests, 20 at a time: sent one by one, each waits on the hosted database, so
+#   fewer than 60 would land in any minute. The limit is per clock minute, so up to about
+#   120 can be accepted when the burst spans a minute boundary.
+seq 1 200 | xargs -P 20 -I{} curl -s -o /dev/null -w "%{http_code}\n" -X POST "$API/ingest/$TOKEN_A" \
+  -H "Content-Type: application/json" -d '{"title":"t","body":"b"}' | sort | uniq -c
 echo "#   (waiting 61 s for the rate-limit window to reset)"; sleep 61
 
 echo "# Script in content: then open the item in the browser: expect plain text, no pop-up"
@@ -46,6 +49,9 @@ curl -s "$SUPA/rest/v1/raw_items?visibility=eq.pooled&limit=5&select=id,title" -
 echo "# Fake inbound email with no provider signature: expect 401"
 curl -s -o /dev/null -w "%{http_code}\n" -X POST "$API/inbound/email" \
   -H "Content-Type: application/json" -d '{"to":"a@in.example.com","subject":"fake"}'
+
+# Setup (not a test): collection needs at least one compiled profile to search with.
+uv run python scripts/onboard_test_company.py || exit 1
 
 echo "# Same run twice: expect the second to add zero rows"
 python -m worker.cli run-source hackernews && python -m worker.cli run-source hackernews

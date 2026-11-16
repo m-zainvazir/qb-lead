@@ -124,9 +124,11 @@ def _run(source: dict[str, Any], trigger: str) -> dict[str, Any]:
         ).fetchone()
         assert run is not None
         run_id: UUID = run["id"]
+        # Search from the last run that really searched: a run with no queries (no compiled
+        # profiles yet) must not move the window, or history would be skipped for good.
         last = conn.execute(
             "select max(started_at) as at from public.source_runs"
-            " where source_key = %s and status = 'succeeded'",
+            " where source_key = %s and status = 'succeeded' and queries > 0",
             (key,),
         ).fetchone()
         since = last["at"] if last and last["at"] else datetime.now(UTC) - FIRST_RUN_LOOKBACK

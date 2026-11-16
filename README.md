@@ -16,15 +16,17 @@ Multi-tenant platform that finds warm and hot leads for freelancers and agencies
 | `scripts/` | Hooks and helper scripts |
 | `docs/` | Plans, runbook, decision records, source register |
 
-## Quick start (local)
+## Quick start
 
-Needs Docker, Node 20+, Python 3.12, `uv` and `make`.
+Needs Docker, Node 20+, Python 3.12, `uv` and `make`. The database, login and storage are a
+hosted Supabase **staging** project; there is no local Supabase. Fill `.env` from
+`.env.example` (staging values) and `apps/web/.env.local` (see `docs/runbook.md`).
 
 ```
-make env      # writes .env from the local Supabase stack
-make dev      # Supabase, API, worker, scheduler, Redis, web
+make install
+make dev      # API, worker, scheduler, Redis, Mailpit in Docker, then the web dev server
 ```
 
-Web: http://localhost:3000. API: http://localhost:8000/healthz. Mail: http://localhost:54324.
+Web: http://localhost:3000. API: http://localhost:8000/healthz. Test inbox (Mailpit): http://localhost:54324.
 
 See `docs/runbook.md` for the full start, stop and debug notes.

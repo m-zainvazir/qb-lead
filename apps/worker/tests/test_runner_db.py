@@ -62,3 +62,44 @@ def test_a_failing_source_is_recorded_and_others_still_run(monkeypatch: pytest.M
     assert failed["status"] == "failed" and "network is down" in failed["error"]
     monkeypatch.setattr(runner, "get_connector", real)
     assert run_source("fake", "cli")["status"] == "succeeded"  # the next run recovers
+
+
+def test_a_run_without_queries_does_not_move_the_search_window(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Found on staging: an empty run (no compiled profiles yet) used to skip history."""
+    from worker.ingest import planner, runner
+
+    with _admin() as conn:
+        conn.execute("update public.sources set monthly_cap_usd = 100 where key = 'fake'")
+    assert run_source("fake", "cli")["status"] == "succeeded"  # a real run (has queries)
+    with _admin() as conn:
+        row = conn.execute(
+            "select max(started_at) from public.source_runs"
+            " where source_key = 'fake' and status = 'succeeded' and queries > 0"
+        ).fetchone()
+    assert row is not None
+    last_real = row[0]
+
+    monkeypatch.setattr(planner, "plan", lambda conn, family, budget: [])
+    empty = run_source("fake", "cli")
+    assert empty["status"] == "succeeded" and empty["queries"] == 0
+    monkeypatch.undo()
+
+    seen: list[object] = []
+    real = runner.get_connector
+
+    def spy(name: str):  # type: ignore[no-untyped-def]
+        connector = real(name)
+        fetch = connector.fetch
+
+        def wrapped(queries, since, ctx):  # type: ignore[no-untyped-def]
+            seen.append(since)
+            return fetch(queries, since, ctx)
+
+        connector.fetch = wrapped  # type: ignore[method-assign]
+        return connector
+
+    monkeypatch.setattr(runner, "get_connector", spy)
+    assert run_source("fake", "cli")["status"] == "succeeded"
+    assert seen == [last_real]  # the empty run in between did not move the window

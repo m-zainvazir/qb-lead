@@ -1,6 +1,8 @@
 # Runbook
 
-Short notes on how to start, stop, deploy, roll back and debug. Local only for now; staging and production sections are filled in when they exist.
+Short notes on how to start, stop, deploy, roll back and debug.
+
+Since 2026-11-15 there is **no local Supabase or Postgres**. The API, worker, scheduler, Redis, Mailpit and the web dev server run on your machine; the database, login and storage are the hosted Supabase **staging** project (ref `djwfqlzrskxeudzttvhx`, US East, Free plan). Production will be a separate project. See `docs/decisions/0004-hosted-staging-dev.md`.
 
 ## First run on a new machine
 
@@ -8,38 +10,43 @@ Needs Docker Desktop, Node 20+, Python 3.12, `uv`, `make` (`winget install ezwin
 
 ```
 make install          # uv sync + npm install (root and apps/web)
-make env              # starts Supabase, writes .env and apps/web/.env.local
 git config core.hooksPath .githooks
-make dev              # Supabase, then API/worker/scheduler/Redis containers, then the web dev server
+make dev              # API/worker/scheduler/Redis/Mailpit containers, then the web dev server
 ```
+
+Before the first run, fill the env files by hand (they are never committed):
+
+- `.env` from `.env.example`. From the Supabase dashboard: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`; `DATABASE_URL_ADMIN` is the **Session pooler** string (`postgres.<ref>@aws-1-us-east-1.pooler.supabase.com:5432`, with `?sslmode=require`). `DATABASE_URL_API` / `DATABASE_URL_SYSTEM` use the same host with the logins `app_api.<ref>` / `app_system.<ref>` and the passwords in `APP_DB_PASSWORD` / `SYSTEM_DB_PASSWORD`. `APP_ENV=staging`.
+- `apps/web/.env.local`: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (same values as `.env`), `API_URL=http://localhost:8000`, `WEB_BASE_URL=http://localhost:3000`.
+- Then `make push-staging` (migrations) and `make db-roles` (app login passwords), once per new project.
 
 | What | Where |
 | --- | --- |
 | Web | http://localhost:3000 |
 | API health | http://localhost:8000/healthz |
 | API docs (local only) | http://localhost:8000/docs |
-| Supabase Studio | http://127.0.0.1:54323 |
-| Mail (Mailpit) | http://127.0.0.1:54324 |
-| Postgres | `make psql` |
+| Supabase dashboard | https://supabase.com/dashboard/project/djwfqlzrskxeudzttvhx |
+| Test inbox (Mailpit, invitation emails) | http://127.0.0.1:54324 |
+| SQL | `make psql sql="select 1"` |
 
 ## Start and stop
 
 - `make dev` starts everything. `make up` restarts only the backend containers.
-- `make stop` stops the containers and Supabase. Data is kept in Docker volumes.
+- `make stop` stops the local containers. Staging data is not touched.
 - `make logs` follows the API, worker and scheduler logs. Every log line is JSON with a `request_id`.
 
 ## Database
 
 - New migration: `npx supabase migration new <name>`. For a table holding customer data, start from `supabase/templates/tenant_table.sql` (`make migration-tenant name=<table>`).
-- Apply new migrations locally: `make migrate`.
-- Rebuild the local database from scratch: `make db-reset` (LOCAL ONLY; the Claude Code hook blocks any reset without `--local`).
-- After a reset, `make db-roles` sets the `app_api` / `app_system` passwords again (`make db-reset` does this for you).
-- Never edit a committed migration. Write a new one.
+- Apply new migrations to staging: `make push-staging` (dry run, then apply). It refuses any project not listed in `.claude/staging-targets.txt` and anything in `.claude/protected-targets.txt`. Typing the Supabase CLI's push or link commands directly is blocked by the guard hook.
+- There is no database reset. Staging is never reset from here; to start over, create a new staging project.
+- Never edit a pushed migration. Write a new one.
+- Staging is shared test data: tests and `make seed-test` write fake companies (Agency A/B) there. Never put real customer data in staging.
 
 ## Tenants, logins and isolation (module 1)
 
 - Two DB login roles: `app_api` (user requests, RLS applies) and `app_system` (worker and admin only). See `docs/decisions/0001-db-access.md`.
-- Test data: `make seed-test` creates Agency A (owner, member), Agency B (owner) and a platform admin with TOTP, and writes `.env.test.local` (tokens last 15 minutes).
+- Test data: `make seed-test` creates Agency A (owner, member), Agency B (owner) and a platform admin with TOTP on staging, and writes `.env.test.local` (tokens last 15 minutes).
 - Isolation checks: `make test-isolation`, or the full terminal tests with `bash scripts/rls_terminal_tests.sh` (or the `rls-test` skill).
 - New tenant table: `make migration-tenant name=<table>`, then add a factory in `tests/isolation/factories.py`; the suite fails until you do.
 - First platform admin: `supabase/snippets/create_platform_admin.sql` (SQL only, never a screen). The admin then enrols an authenticator at `/admin/mfa`; admin routes need aal2.
