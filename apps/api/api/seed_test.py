@@ -1,4 +1,4 @@
-"""`python -m api.cli seed-test`: two test agencies with fake data on the LOCAL stack.
+"""`python -m api.cli seed-test`: two test agencies with fake data (local stack or STAGING).
 
 Creates (idempotently):
   * Agency A: owner-a@example.com (owner), member-a@example.com (member)
@@ -7,7 +7,8 @@ Creates (idempotently):
 and writes `.env.test.local` with the placeholders the module plans use
 ($API, $SUPA, $ANON, $JWT_A, $JWT_B, $JWT_MEMBER_A, $JWT_ADMIN, $TENANT_A, $TENANT_B, ...).
 
-Refuses to run unless Supabase is on 127.0.0.1/localhost and APP_ENV is not production.
+Refuses to run unless Supabase and the database are local or a staging project listed in
+.claude/staging-targets.txt, and APP_ENV is not production (core.targets).
 Tokens last 15 minutes; run it again for fresh ones.
 """
 
@@ -19,11 +20,11 @@ import time
 import uuid
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
 
 import httpx
 import psycopg
 
+from core import targets
 from core.settings import get_settings, refuse_in_production
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -45,9 +46,14 @@ class SeedError(RuntimeError):
 
 def _local_only() -> None:
     refuse_in_production("seed test data")
-    host = urlparse(get_settings().supabase_url).hostname
-    if host not in ("127.0.0.1", "localhost"):
-        raise SeedError(f"seed-test only runs against a local Supabase (got {host})")
+    s = get_settings()
+    urls = [s.supabase_url, s.database_url_api.get_secret_value()]
+    if s.database_url_admin is not None:
+        urls.append(s.database_url_admin.get_secret_value())
+    try:
+        targets.check(*urls, app_env=s.app_env)
+    except targets.UnsafeTarget as exc:
+        raise SeedError(f"seed-test refused: {exc}") from exc
 
 
 class Auth:
@@ -215,7 +221,7 @@ def run() -> int:
         "SUPABASE_SERVICE_ROLE_KEY": s.supabase_service_role_key.get_secret_value(),
     }
     lines = [
-        "# Written by `python -m api.cli seed-test`. LOCAL fake data only; tokens last 15 minutes.",
+        "# Written by `python -m api.cli seed-test`. Fake test data only; tokens last 15 minutes.",
         *(f"export {k}={shlex.quote(v)}" for k, v in values.items()),
     ]
     OUT.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")

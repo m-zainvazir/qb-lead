@@ -1,4 +1,4 @@
-"""metered_call against the local database (run with `make test-db`)."""
+"""metered_call against the staging database (run with `make test-db`)."""
 
 from __future__ import annotations
 

@@ -1,10 +1,9 @@
-# Local development. Run `make help` for the list. Never point these at production.
+# Development: containers run locally, the database is the hosted Supabase STAGING project in .env.
+# Run `make help` for the list. Never point these at production.
 SHELL := bash
 .DEFAULT_GOAL := help
 
 COMPOSE := docker compose -f infra/docker-compose.yml --env-file .env
-SUPABASE := npx supabase
-PSQL_ADMIN := docker exec -i supabase_db_leadgen psql -v ON_ERROR_STOP=1 -U postgres -d postgres
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 export GIT_COMMIT
 
@@ -18,26 +17,18 @@ install: ## Install Python and Node dependencies
 	npm install
 	cd apps/web && npm install
 
-.PHONY: env
-env: ## Create .env and apps/web/.env.local from the local Supabase stack
-	$(SUPABASE) start
-	uv run python scripts/make_env.py
-
 .PHONY: dev
-dev: ## Start Supabase, API, worker, scheduler, Redis, then the web dev server
-	$(SUPABASE) start
-	$(MAKE) db-roles
+dev: ## Start API, worker, scheduler, Redis, Mailpit (database = staging), then the web dev server
 	$(COMPOSE) up -d --build
 	cd apps/web && npm run dev
 
 .PHONY: up
-up: ## Start backend containers only (Supabase must be running)
+up: ## Start backend containers only (API, worker, scheduler, Redis, Mailpit)
 	$(COMPOSE) up -d --build
 
 .PHONY: stop
-stop: ## Stop containers and the Supabase stack (data is kept)
+stop: ## Stop the local containers (staging data is not touched)
 	-$(COMPOSE) down
-	$(SUPABASE) stop
 
 .PHONY: logs
 logs: ## Follow backend container logs
@@ -62,30 +53,29 @@ test: ## Fast unit tests (no database)
 	uv run pytest -q -m "not db"
 
 .PHONY: test-db
-test-db: ## Database tests against the LOCAL stack, then the isolation suite
+test-db: ## Database tests against STAGING (never production), then the isolation suite
 	LEADGEN_USE_REAL_ENV=1 uv run pytest -q -m db packages apps
 	$(MAKE) test-isolation
 
 .PHONY: test-isolation
-test-isolation: ## Tenant isolation suite (seeds Agency A/B on the LOCAL stack)
+test-isolation: ## Tenant isolation suite (seeds Agency A/B on STAGING)
 	uv run pytest tests/isolation -q
 
 .PHONY: migrate
-migrate: ## Apply new local migrations (no reset, keeps data)
-	$(SUPABASE) migration up --local
+migrate: push-staging ## Apply new migrations to staging (same as push-staging)
 
-.PHONY: db-reset
-db-reset: ## LOCAL ONLY: rebuild the local database from migrations and seed
-	$(SUPABASE) db reset --local
-	$(MAKE) db-roles
+.PHONY: push-staging
+push-staging: ## Apply new migrations to the STAGING project (refuses anything else)
+	uv run python scripts/push_staging.py --dry-run
+	uv run python scripts/push_staging.py
 
 .PHONY: db-roles
 db-roles: ## Set passwords on the app_api / app_system login roles from .env
 	uv run python -m api.cli db-roles
 
 .PHONY: psql
-psql: ## Open psql on the local database as the admin role
-	docker exec -it supabase_db_leadgen psql -U postgres -d postgres
+psql: ## Run SQL on staging as admin: make psql sql="select 1"  (or pipe SQL in)
+	@if [ -n "$(sql)" ]; then uv run python scripts/psql.py admin -c "$(sql)"; else uv run python scripts/psql.py admin; fi
 
 .PHONY: requirements
 requirements: ## Refresh requirements.txt files used by pip-audit
@@ -104,5 +94,5 @@ migration-tenant: ## New tenant-table migration from the template: make migratio
 	uv run python scripts/new_tenant_table.py $(name)
 
 .PHONY: seed-test
-seed-test: ## LOCAL ONLY: seed Agency A/B test users and write .env.test.local (tokens last 15 min)
+seed-test: ## Seed Agency A/B test users on STAGING and write .env.test.local (tokens last 15 min)
 	uv run python -m api.cli seed-test

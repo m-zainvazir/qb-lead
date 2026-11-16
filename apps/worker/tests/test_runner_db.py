@@ -1,4 +1,4 @@
-"""The run loop against the local database (run with `make test-db`)."""
+"""The run loop against the staging database (run with `make test-db`)."""
 
 from __future__ import annotations
 

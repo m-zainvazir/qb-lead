@@ -2,7 +2,9 @@
 
 Blocks (exit 2):
   * `supabase db reset` unless it targets the local stack (`--local`, no --linked/--db-url)
-  * `supabase db push`, `supabase link` (remote projects are changed by CI/deploys, not here)
+  * `supabase db push`, `supabase link` typed directly. Staging pushes go through
+    `make push-staging` (scripts/push_staging.py), which only accepts a project listed in
+    .claude/staging-targets.txt; production is changed by deploys, never from here.
   * DROP TABLE / SCHEMA / DATABASE / ROLE and TRUNCATE
   * writing to .env files from the shell
   * anything that names a protected target listed in .claude/protected-targets.txt
@@ -19,7 +21,8 @@ from pathlib import Path
 RULES: list[tuple[re.Pattern[str], str]] = [
     (
         re.compile(r"\bsupabase\s+db\s+reset\b(?![^\n;&|]*--local)", re.I),
-        "`supabase db reset` without --local. Use `make db-reset` (local only).",
+        "`supabase db reset` without --local. There is no local stack, and staging is never "
+        "reset from here.",
     ),
     (
         re.compile(r"\bsupabase\s+db\s+reset\b[^\n;&|]*(--linked|--db-url)", re.I),
@@ -27,7 +30,7 @@ RULES: list[tuple[re.Pattern[str], str]] = [
     ),
     (
         re.compile(r"\bsupabase\s+(db\s+push|link)\b", re.I),
-        "pushing to or linking a remote project.",
+        "pushing to or linking a remote project directly. Use `make push-staging` (staging only).",
     ),
     (
         re.compile(r"\bdrop\s+(table|schema|database|role|owned)\b", re.I),

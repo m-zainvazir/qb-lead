@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Module 2 terminal tests (docs/plans/module-02-catalogue-and-onboarding.md), LOCAL ONLY.
+# Module 2 terminal tests (docs/plans/module-02-catalogue-and-onboarding.md), local stack or STAGING (never production).
 #
 #   make seed-test && bash scripts/m2_terminal_tests.sh
 #
@@ -10,13 +10,8 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
 
-[ -f .env.test.local ] || { echo "Run 'make seed-test' first."; exit 2; }
 # shellcheck disable=SC1091
-source .env.test.local
-case "$SUPA" in
-  http://127.0.0.1:*|http://localhost:*) ;;
-  *) echo "Refusing: SUPA is not a local stack ($SUPA)"; exit 2 ;;
-esac
+source scripts/terminal_env.sh
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT

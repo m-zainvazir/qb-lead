@@ -1,6 +1,6 @@
 """Root pytest config: a fake, complete environment for unit tests.
 
-Unit tests never talk to real services. Tests that need the local database are
+Unit tests never talk to real services. Tests that need the database (staging) are
 marked `db` and read the real values from `.env` / `.env.test.local` instead.
 """
 
@@ -27,3 +27,19 @@ _FAKE_ENV = {
 if os.environ.get("LEADGEN_USE_REAL_ENV") != "1":
     for key, value in _FAKE_ENV.items():
         os.environ.setdefault(key, value)
+else:
+    # Real values (database tests): refuse anything that is not local or a staging
+    # project in .claude/staging-targets.txt, and production (core.targets).
+    from dotenv import dotenv_values
+
+    from core.targets import UnsafeTarget, check
+
+    _real = {**dotenv_values(".env"), **os.environ}
+    try:
+        check(
+            *(str(_real[k]) for k in ("SUPABASE_URL", "DATABASE_URL_API") if _real.get(k)),
+            *([str(_real["DATABASE_URL_ADMIN"])] if _real.get("DATABASE_URL_ADMIN") else []),
+            app_env=str(_real.get("APP_ENV") or ""),
+        )
+    except UnsafeTarget as _exc:
+        raise SystemExit(f"Refusing to run database tests: {_exc}") from None

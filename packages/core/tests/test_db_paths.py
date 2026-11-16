@@ -1,4 +1,4 @@
-"""user_db / system_db against the local database (run with `make test-db`)."""
+"""user_db / system_db against the staging database (run with `make test-db`)."""
 
 from __future__ import annotations
 

@@ -1,28 +1,17 @@
 #!/usr/bin/env bash
-# Module 1 terminal tests 1-11 (docs/plans/module-01-tenants-and-isolation.md), LOCAL ONLY.
+# Module 1 terminal tests 1-11 (docs/plans/module-01-tenants-and-isolation.md), local stack or STAGING (never production).
 #
 #   make seed-test && bash scripts/rls_terminal_tests.sh
 #
-# Commands are the plan's, with two local adaptations:
-#   * psql runs inside the Supabase DB container (no host psql); "$DB_URL"/"$APP_DB_URL"
-#     are rewritten to the container's view of the same database.
+# Commands are the plan's, with two adaptations:
+#   * `psql` is scripts/psql.py (see scripts/terminal_env.sh); there is no Postgres install.
 #   * test 9 needs a production web build in apps/web/.next (run `npm run build` first).
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-[ -f .env.test.local ] || { echo "Run 'make seed-test' first."; exit 2; }
 # shellcheck disable=SC1091
-source .env.test.local
-case "$SUPA" in
-  http://127.0.0.1:*|http://localhost:*) ;;
-  *) echo "Refusing: SUPA is not a local stack ($SUPA)"; exit 2 ;;
-esac
+source scripts/terminal_env.sh
 
-psql() {  # psql "<url>" -c "<sql>"  ->  run inside the DB container as the same login role
-  local url="$1"; shift
-  url="${url/127.0.0.1:54322/127.0.0.1:5432}"
-  docker exec -i supabase_db_leadgen psql "$url" "$@"
-}
 
 echo "# 1. No login: expect 401 or an empty list, never rows"
 curl -s "$SUPA/rest/v1/memberships?select=*" -H "apikey: $ANON"; echo

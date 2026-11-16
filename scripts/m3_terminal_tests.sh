@@ -1,21 +1,15 @@
 #!/usr/bin/env bash
-# Module 3 terminal tests (docs/plans/module-03-sources-and-ingestion.md), LOCAL ONLY.
+# Module 3 terminal tests (docs/plans/module-03-sources-and-ingestion.md), local stack or STAGING (never production).
 #
 #   make seed-test && bash scripts/m3_terminal_tests.sh
 #
 # The plan's commands, with local adaptations: `python -m worker.cli` runs through uv
-# from the repo root, and psql runs inside the Supabase DB container.
+# from the repo root, and `psql` is scripts/psql.py.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-[ -f .env.test.local ] || { echo "Run 'make seed-test' first."; exit 2; }
 # shellcheck disable=SC1091
-source .env.test.local
-case "$SUPA" in
-  http://127.0.0.1:*|http://localhost:*) ;;
-  *) echo "Refusing: SUPA is not a local stack ($SUPA)"; exit 2 ;;
-esac
-psql() { local url="$1"; shift; docker exec -i supabase_db_leadgen psql "${url/127.0.0.1:54322/127.0.0.1:5432}" "$@"; }
+source scripts/terminal_env.sh
 python() { uv run python "$@"; }
 
 echo "# Wrong webhook secret: expect 401 or 404"

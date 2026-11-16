@@ -1,6 +1,6 @@
 """Outgoing email behind a small interface, so the provider can be swapped.
 
-Locally this is SMTP to Mailpit (http://127.0.0.1:54324). A transactional provider
+Locally this is SMTP to the Mailpit container (http://127.0.0.1:54324). A transactional provider
 replaces `SmtpMailer` later without changing callers.
 """
 

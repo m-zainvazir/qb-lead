@@ -1,21 +1,23 @@
-# Local stack: API, worker, scheduler, Redis. Supabase runs separately (`npx supabase start`).
-# Start through `make dev`; it passes the root .env with --env-file.
+# Local containers: API, worker, scheduler, Redis and Mailpit. The database, login and storage
+# are the hosted Supabase STAGING project named in .env (there is no local Supabase).
+# Start through `make dev` / `make up`; they pass the root .env with --env-file.
 name: leadgen
 
 x-python-env: &python-env
   APP_ENV: ${APP_ENV:-local}
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
-  SUPABASE_URL: http://host.docker.internal:54321
-  SUPABASE_JWT_ISSUER: http://127.0.0.1:54321/auth/v1
-  SUPABASE_PUBLIC_URL: http://127.0.0.1:54321
+  SUPABASE_URL: ${SUPABASE_URL:?set in .env}
+  SUPABASE_JWT_ISSUER: ${SUPABASE_JWT_ISSUER:-}
+  SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL:-}
   SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?set in .env}
   SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-}
-  DATABASE_URL_API: postgresql://app_api:${APP_DB_PASSWORD:?set in .env}@host.docker.internal:54322/postgres
-  DATABASE_URL_SYSTEM: postgresql://app_system:${SYSTEM_DB_PASSWORD:?set in .env}@host.docker.internal:54322/postgres
+  DATABASE_URL_API: ${DATABASE_URL_API:?set in .env}
+  DATABASE_URL_SYSTEM: ${DATABASE_URL_SYSTEM:?set in .env}
   REDIS_URL: redis://:${REDIS_PASSWORD:?set in .env}@redis:6379/0
   WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:3000}
-  SMTP_HOST: host.docker.internal
-  SMTP_PORT: "54325"
+  SMTP_HOST: mailpit  # local test inbox; invitation emails land at http://127.0.0.1:54324
+  SMTP_PORT: "1025"
+  SMTP_FROM: ${SMTP_FROM:-no-reply@leadgen.local}
   EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-fastembed}
   MAILGUN_SIGNING_KEY: ${MAILGUN_SIGNING_KEY:-}
   INBOUND_EMAIL_DOMAIN: ${INBOUND_EMAIL_DOMAIN:-in.leadgen.local}
@@ -83,6 +85,14 @@ services:
       retries: 10
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+  mailpit:
+    # Catches every email the backend sends (invitations). Nothing leaves this machine.
+    image: axllent/mailpit:v1.31.3
+    ports:
+      - "127.0.0.1:54324:8025"  # web inbox
+      - "127.0.0.1:54325:1025"  # SMTP, for tools run on the host (SMTP_PORT in .env)
+    restart: unless-stopped
 
 volumes:
   redis-data:

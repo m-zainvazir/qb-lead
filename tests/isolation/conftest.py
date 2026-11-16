@@ -1,7 +1,8 @@
-"""Tenant isolation suite: `pytest tests/isolation -q` against the LOCAL stack.
+"""Tenant isolation suite: `pytest tests/isolation -q` against the local stack or STAGING.
 
-Uses the real local `.env` (not the fake unit-test environment), refuses anything that
-is not a local Supabase, and seeds Agency A / Agency B with `api.seed_test`.
+Uses the real `.env` (not the fake unit-test environment), refuses anything that is not
+local or a staging project in .claude/staging-targets.txt (never production; see
+core.targets), and seeds Agency A / Agency B with `api.seed_test`.
 Every database test runs inside one transaction that is rolled back.
 """
 
@@ -14,7 +15,6 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
 
 import psycopg
 import pytest
@@ -38,6 +38,7 @@ for key in (
 os.chdir(ROOT)  # pydantic-settings reads ./.env
 
 from api import seed_test
+from core import targets
 from core.settings import get_settings
 
 get_settings.cache_clear()
@@ -60,9 +61,13 @@ class World:
 @pytest.fixture(scope="session")
 def world() -> World:
     s = get_settings()
-    host = urlparse(s.supabase_url).hostname
-    if host not in ("127.0.0.1", "localhost") or s.is_production:
-        pytest.exit(f"isolation suite runs against a local stack only (got {host})", 2)
+    urls = [s.supabase_url, s.database_url_api.get_secret_value()]
+    if s.database_url_admin is not None:
+        urls.append(s.database_url_admin.get_secret_value())
+    try:
+        targets.check(*urls, app_env=s.app_env)
+    except targets.UnsafeTarget as exc:
+        pytest.exit(f"isolation suite refused: {exc}", 2)
     seed_test.run()
     env: dict[str, str] = {}
     for line in (ROOT / ".env.test.local").read_text(encoding="utf-8").splitlines():
