@@ -2,7 +2,7 @@
 #   docker build -f infra/python.Dockerfile --build-arg PACKAGE=api -t leadgen-api .
 FROM ghcr.io/astral-sh/uv:0.13.6 AS uv
 
-FROM python:3.12-slim AS build
+FROM python:3.15-slim AS build
 COPY --from=uv /uv /usr/local/bin/uv
 ARG PACKAGE
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never
@@ -15,7 +15,7 @@ COPY apps/worker/pyproject.toml apps/worker/pyproject.toml
 COPY apps/worker/worker apps/worker/worker
 RUN uv sync --frozen --no-dev --no-editable --package ${PACKAGE}
 
-FROM python:3.12-slim
+FROM python:3.15-slim
 ARG GIT_COMMIT=dev
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1 GIT_COMMIT=${GIT_COMMIT} \
     HOME=/tmp HF_HOME=/models/hf
