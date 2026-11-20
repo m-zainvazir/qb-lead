@@ -1,5 +1,6 @@
 "use server";
 
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 
 import type { FormState } from "@/components/action-form";
@@ -62,6 +63,10 @@ export async function signIn(_state: FormState, formData: FormData): Promise<For
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     if (error.status === 429) return { error: "Too many attempts. Wait a few minutes." };
+    // Login service unreachable or failing: say so, not "wrong password" (says nothing about accounts).
+    if (isAuthRetryableFetchError(error) || !error.status || error.status >= 500) {
+      return { error: "Sign-in is unavailable right now. Try again in a minute." };
+    }
     if (error.code === "email_not_confirmed") {
       // Only reachable with the correct password, so it reveals nothing new.
       return { error: "Confirm your email first. We sent you a link when you signed up." };
