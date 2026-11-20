@@ -6,6 +6,6 @@
     "supabase": "supabase"
   },
   "devDependencies": {
-    "supabase": "^3.1.0"
+    "supabase": "^3.2.0"
   }
 }
