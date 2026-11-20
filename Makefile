@@ -1,6 +1,12 @@
 # Development: containers run locally, the database is the hosted Supabase STAGING project in .env.
 # Run `make help` for the list. Never point these at production.
+ifeq ($(OS),Windows_NT)
+# In PowerShell/cmd, `bash` on PATH is the WSL launcher (or nothing), and make then falls
+# back to cmd.exe. Use Git Bash, installed with Git for Windows, so make works from any terminal.
+SHELL := C:/Program Files/Git/bin/bash.exe
+else
 SHELL := bash
+endif
 .DEFAULT_GOAL := help
 
 COMPOSE := docker compose -f infra/docker-compose.yml --env-file .env
@@ -17,13 +23,17 @@ install: ## Install Python and Node dependencies
 	npm install
 	cd apps/web && npm install
 
+.PHONY: docker-check
+docker-check:
+	@docker info >/dev/null 2>&1 || { echo "Docker is not running: start Docker Desktop, wait until it says 'Engine running', then retry."; exit 1; }
+
 .PHONY: dev
-dev: ## Start API, worker, scheduler, Redis, Mailpit (database = staging), then the web dev server
+dev: docker-check ## Start API, worker, scheduler, Redis, Mailpit (database = staging), then the web dev server
 	$(COMPOSE) up -d --build
 	cd apps/web && npm run dev
 
 .PHONY: up
-up: ## Start backend containers only (API, worker, scheduler, Redis, Mailpit)
+up: docker-check ## Start backend containers only (API, worker, scheduler, Redis, Mailpit)
 	$(COMPOSE) up -d --build
 
 .PHONY: stop
