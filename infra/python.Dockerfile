@@ -1,6 +1,6 @@
 # One image for the API and the worker. Build with:
 #   docker build -f infra/python.Dockerfile --build-arg PACKAGE=api -t leadgen-api .
-FROM ghcr.io/astral-sh/uv:0.13.6 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.9 AS uv
 
 FROM python:3.12-slim AS build
 COPY --from=uv /uv /usr/local/bin/uv
