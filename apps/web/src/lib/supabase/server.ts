@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
+import { io } from "next/cache";
 import { cookies } from "next/headers";
 
 import { env } from "@/lib/env";
@@ -10,6 +11,9 @@ import { hardenCookie } from "@/lib/supabase/cookies";
 // and route handlers. The browser never gets a Supabase client or a token.
 export async function createClient() {
   const cookieStore = await cookies();
+  // The auth client reads the clock as soon as it is created (session expiry). Prefetch
+  // prerenders can resolve cookies, so stop every prerender here: auth only runs per request.
+  await io();
   return createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
     cookies: {
       getAll() {
